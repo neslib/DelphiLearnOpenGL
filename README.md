@@ -74,8 +74,8 @@ Since these provide only snippets of code, wherever necessary I will provide a l
   * [OpenGL (ES)](Documentation/1.GettingStarted/1.0a.OpenGL.md)
   * [Creating an OpenGL App](Documentation/1.GettingStarted/1.0b.CreateApp.md)
   * [1.1 Hello Window](Documentation/1.GettingStarted/1.1.HelloWindow.md)
-  * 1.2 Hello Triangle
-  * 1.3 Shaders
+  * [1.2 Hello Triangle](Documentation/1.GettingStarted/1.2.HelloTriangle.md)
+  * [1.3 Shaders](Documentation/1.GettingStarted/1.3.Shaders.md)
   * 1.4 Textures
   * 1.5 Transformations
   * 1.6 Coordinate Systems

@@ -57,6 +57,8 @@ To make the tutorials easier to follow and give them some added structure the si
 
 > :exclamation:`Windows` Blockquotes starting with an exclamation followed by one or more platforms (`Windows`, `macOS`, `iOS` or `Android`) contain notes specific to those platforms,. 
 
+> :link: Link blockquotes link to the corresponding code in the GitHub repository.
+
 ### Code
 You will find plenty of small pieces of code are located in boxes with syntax-highlighted code as you can see below:
 
@@ -69,9 +71,9 @@ Since these provide only snippets of code, wherever necessary I will provide a l
 ## <a name="Contents"></a>Tutorials Index
 
 * Getting Started
-  * [OpenGL](Documentation/1.GettingStarted/1.0a.OpenGL.md)
+  * [OpenGL (ES)](Documentation/1.GettingStarted/1.0a.OpenGL.md)
   * [Creating an OpenGL App](Documentation/1.GettingStarted/1.0b.CreateApp.md)
-  * 1.1 Hello Window
+  * [1.1 Hello Window](Documentation/1.GettingStarted/1.1.HelloWindow.md)
   * 1.2 Hello Triangle
   * 1.3 Shaders
   * 1.4 Textures

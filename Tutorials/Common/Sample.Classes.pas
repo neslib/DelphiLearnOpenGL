@@ -859,7 +859,7 @@ end;
 class procedure TVertexArray.Initialize;
 begin
   {$IF Defined(MSWINDOWS)}
-  FSupportsVAO := True;
+  FSupportsVAO := Assigned(Winapi.OpenGLExt.glGenVertexArrays);
   glGenVertexArrays := Winapi.OpenGLExt.glGenVertexArrays;
   glBindVertexArray := Winapi.OpenGLExt.glBindVertexArray;
   glDeleteVertexArrays := Winapi.OpenGLExt.glDeleteVertexArrays;

@@ -1,0 +1,120 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{202CBEF0-AE11-4962-B728-066F265F5431}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="1.GettingStarted\1.HelloWindow\T101HelloWindow.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\2.HelloTriangle\T102HelloTriangle.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\3.Shaders\T103Shaders.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\4.Textures\T104Textures.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\5.Transformations\T105Transformations.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\6.CoordinateSystems\T106CoordinateSystems.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.GettingStarted\7.Camera\T107Camera.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="2.Lighting\1.Colors\T201Colors.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="T101HelloWindow">
+        <MSBuild Projects="1.GettingStarted\1.HelloWindow\T101HelloWindow.dproj"/>
+    </Target>
+    <Target Name="T101HelloWindow:Clean">
+        <MSBuild Projects="1.GettingStarted\1.HelloWindow\T101HelloWindow.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T101HelloWindow:Make">
+        <MSBuild Projects="1.GettingStarted\1.HelloWindow\T101HelloWindow.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T102HelloTriangle">
+        <MSBuild Projects="1.GettingStarted\2.HelloTriangle\T102HelloTriangle.dproj"/>
+    </Target>
+    <Target Name="T102HelloTriangle:Clean">
+        <MSBuild Projects="1.GettingStarted\2.HelloTriangle\T102HelloTriangle.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T102HelloTriangle:Make">
+        <MSBuild Projects="1.GettingStarted\2.HelloTriangle\T102HelloTriangle.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T103Shaders">
+        <MSBuild Projects="1.GettingStarted\3.Shaders\T103Shaders.dproj"/>
+    </Target>
+    <Target Name="T103Shaders:Clean">
+        <MSBuild Projects="1.GettingStarted\3.Shaders\T103Shaders.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T103Shaders:Make">
+        <MSBuild Projects="1.GettingStarted\3.Shaders\T103Shaders.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T104Textures">
+        <MSBuild Projects="1.GettingStarted\4.Textures\T104Textures.dproj"/>
+    </Target>
+    <Target Name="T104Textures:Clean">
+        <MSBuild Projects="1.GettingStarted\4.Textures\T104Textures.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T104Textures:Make">
+        <MSBuild Projects="1.GettingStarted\4.Textures\T104Textures.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T105Transformations">
+        <MSBuild Projects="1.GettingStarted\5.Transformations\T105Transformations.dproj"/>
+    </Target>
+    <Target Name="T105Transformations:Clean">
+        <MSBuild Projects="1.GettingStarted\5.Transformations\T105Transformations.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T105Transformations:Make">
+        <MSBuild Projects="1.GettingStarted\5.Transformations\T105Transformations.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T106CoordinateSystems">
+        <MSBuild Projects="1.GettingStarted\6.CoordinateSystems\T106CoordinateSystems.dproj"/>
+    </Target>
+    <Target Name="T106CoordinateSystems:Clean">
+        <MSBuild Projects="1.GettingStarted\6.CoordinateSystems\T106CoordinateSystems.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T106CoordinateSystems:Make">
+        <MSBuild Projects="1.GettingStarted\6.CoordinateSystems\T106CoordinateSystems.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T107Camera">
+        <MSBuild Projects="1.GettingStarted\7.Camera\T107Camera.dproj"/>
+    </Target>
+    <Target Name="T107Camera:Clean">
+        <MSBuild Projects="1.GettingStarted\7.Camera\T107Camera.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T107Camera:Make">
+        <MSBuild Projects="1.GettingStarted\7.Camera\T107Camera.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="T201Colors">
+        <MSBuild Projects="2.Lighting\1.Colors\T201Colors.dproj"/>
+    </Target>
+    <Target Name="T201Colors:Clean">
+        <MSBuild Projects="2.Lighting\1.Colors\T201Colors.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="T201Colors:Make">
+        <MSBuild Projects="2.Lighting\1.Colors\T201Colors.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="T101HelloWindow;T102HelloTriangle;T103Shaders;T104Textures;T105Transformations;T106CoordinateSystems;T107Camera;T201Colors"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="T101HelloWindow:Clean;T102HelloTriangle:Clean;T103Shaders:Clean;T104Textures:Clean;T105Transformations:Clean;T106CoordinateSystems:Clean;T107Camera:Clean;T201Colors:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="T101HelloWindow:Make;T102HelloTriangle:Make;T103Shaders:Make;T104Textures:Make;T105Transformations:Make;T106CoordinateSystems:Make;T107Camera:Make;T201Colors:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

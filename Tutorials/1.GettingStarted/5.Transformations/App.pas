@@ -143,7 +143,7 @@ end;
 
 procedure TTransformations.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
-  Transform, Rotation: TMatrix4;
+  Rotation, Translation, Transform: TMatrix4;
 begin
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);
@@ -163,9 +163,9 @@ begin
   glUniform1i(FUniformOurTexture2, 1);
 
   { Create transformations }
-  Transform.InitTranslation(0.5, -0.5, 0);
   Rotation.InitRotationZ(ATotalTimeSec * Radians(50));
-  Transform := Rotation * Transform;
+  Translation.InitTranslation(0.5, -0.5, 0);
+  Transform := Rotation * Translation;
 
   { Set transformation }
   glUniformMatrix4fv(FUniformTransform, 1, GL_FALSE, @Transform);

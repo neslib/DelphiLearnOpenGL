@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{0406DF75-C48F-4AE3-B64B-A16FB75DED9A}</ProjectGuid>
+        <ProjectGuid>{0433EE9A-CC5B-489D-B2C6-A915B10CBB08}</ProjectGuid>
         <ProjectVersion>18.2</ProjectVersion>
         <FrameworkType>FMX</FrameworkType>
         <MainSource>T105Transformations.dpr</MainSource>

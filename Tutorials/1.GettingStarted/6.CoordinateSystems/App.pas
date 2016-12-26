@@ -194,7 +194,7 @@ end;
 
 procedure TCoordinateSystems.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
-  Model, View, Projection, Rotate: TMatrix4;
+  Model, View, Projection, Translate, Rotate: TMatrix4;
   I: Integer;
 begin
   { Define the viewport dimensions }
@@ -232,9 +232,9 @@ begin
   begin
     { Calculate the model matrix for each object and pass it to shader before
       drawing }
-    Model.InitTranslation(CUBE_POSITIONS[I]);
+    Translate.InitTranslation(CUBE_POSITIONS[I]);
     Rotate.InitRotation(Vector3(1, 0.3, 0.5), Radians(20 * I));
-    Model := Rotate * Model;
+    Model := Rotate * Translate;
     glUniformMatrix4fv(FUniformModel, 1, GL_FALSE, @Model);
     FVertexArray.Render;
   end;

@@ -20,6 +20,7 @@ type
     FStartTicks: Int64;
     FLastUpdateTicks: Int64;
     FFPSTicks: Int64;
+    FScreenScale: Single;
     FTerminated: Boolean;
   protected
     class procedure StartClock; static;
@@ -43,6 +44,10 @@ type
 
     { Current render framerate in Frames Per Second. }
     class property RenderFramerate: Integer read FFPS;
+
+    { Screen scale factor. Will be 1.0 on "normal" density displays, or greater
+      than 1.0 on high density displays (like Retina displays) }
+    class property ScreenScale: Single read FScreenScale write FScreenScale;
   end;
   TPlaformClass = class of TPlatformBase;
 
@@ -71,6 +76,7 @@ uses
 class procedure TPlatformBase.Run(const AApp: TApplication);
 begin
   FApp := AApp;
+  FScreenScale := 1.0;
   TPlatform.DoRun;
 end;
 

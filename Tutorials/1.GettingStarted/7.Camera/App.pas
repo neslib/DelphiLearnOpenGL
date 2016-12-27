@@ -25,19 +25,12 @@ type
     FUniformProjection: GLint;
     FUniformOurTexture1: GLint;
     FUniformOurTexture2: GLint;
-    FLastX: Single;
-    FLastY: Single;
-    FMouseDown: Boolean;
-    FKeyW: Boolean;
-    FKeyA: Boolean;
-    FKeyS: Boolean;
-    FKeyD: Boolean;
-  private
-    procedure HandleInput(const ADeltaTimeSec: Single);
   public
     procedure Initialize; override;
     procedure Update(const ADeltaTimeSec, ATotalTimeSec: Double); override;
     procedure Shutdown; override;
+    procedure Resize(const AWidth, AHeight: Integer); override;
+  public
     procedure KeyDown(const AKey: Integer; const AShift: TShiftState); override;
     procedure KeyUp(const AKey: Integer; const AShift: TShiftState); override;
     procedure MouseDown(const AButton: TMouseButton; const AShift: TShiftState;
@@ -115,27 +108,12 @@ const
 
 { TCameraApp }
 
-procedure TCameraApp.HandleInput(const ADeltaTimeSec: Single);
-begin
-  if (FKeyW) then
-    FCamera.ProcessKeyboard(TCameraMovement.Forward, ADeltaTimeSec);
-
-  if (FKeyS) then
-    FCamera.ProcessKeyboard(TCameraMovement.Backward, ADeltaTimeSec);
-
-  if (FKeyA) then
-    FCamera.ProcessKeyboard(TCameraMovement.Left, ADeltaTimeSec);
-
-  if (FKeyD) then
-    FCamera.ProcessKeyboard(TCameraMovement.Right, ADeltaTimeSec);
-end;
-
 procedure TCameraApp.Initialize;
 var
   VertexLayout: TVertexLayout;
   Data: TBytes;
   Image: Pointer;
-  Width, Height, Components: Integer;
+  ImageWidth, ImageHeight, ImageComponents: Integer;
 begin
   { Initialize the asset manager }
   TAssets.Initialize;
@@ -144,7 +122,7 @@ begin
   glEnable(GL_DEPTH_TEST);
 
   { Create camera }
-  FCamera := TCamera.Create(Vector3(0, 0, 3));
+  FCamera := TCamera.Create(Width, Height, Vector3(0, 0, 3));
 
   { Build and compile our shader program }
   FShader := TShader.Create('shaders/coordinate_systems.vs', 'shaders/coordinate_systems.fs');
@@ -180,9 +158,9 @@ begin
   { Load, create texture and generate mipmaps }
   Data := TAssets.Load('textures/container.jpg');
   Assert(Assigned(Data));
-  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, 3);
+  Image := stbi_load_from_memory(Data, Length(Data), ImageWidth, ImageHeight, ImageComponents, 3);
   Assert(Assigned(Image));
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ImageWidth, ImageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
   glGenerateMipmap(GL_TEXTURE_2D);
   stbi_image_free(Image);
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -205,9 +183,9 @@ begin
   { Load, create texture and generate mipmaps }
   Data := TAssets.Load('textures/awesomeface.png');
   Assert(Assigned(Data));
-  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, 3);
+  Image := stbi_load_from_memory(Data, Length(Data), ImageWidth, ImageHeight, ImageComponents, 3);
   Assert(Assigned(Image));
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ImageWidth, ImageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
   glGenerateMipmap(GL_TEXTURE_2D);
   stbi_image_free(Image);
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -216,72 +194,46 @@ end;
 
 procedure TCameraApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
-  { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
-    Terminate;
-
-  if (AKey = vkW) or (AKey = vkUp) then
-    FKeyW := True;
-
-  if (AKey = vkA) or (AKey = vkLeft) then
-    FKeyA := True;
-
-  if (AKey = vkS) or (AKey = vkDown) then
-    FKeyS := True;
-
-  if (AKey = vkD) or (AKey = vkRight) then
-    FKeyD := True;
+    { Terminate app when Esc key is pressed }
+    Terminate
+  else
+    FCamera.ProcessKeyDown(AKey);
 end;
 
 procedure TCameraApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
 begin
-  if (AKey = vkW) or (AKey = vkUp) then
-    FKeyW := False;
-
-  if (AKey = vkA) or (AKey = vkLeft) then
-    FKeyA := False;
-
-  if (AKey = vkS) or (AKey = vkDown) then
-    FKeyS := False;
-
-  if (AKey = vkD) or (AKey = vkRight) then
-    FKeyD := False;
+  FCamera.ProcessKeyUp(AKey);
 end;
 
 procedure TCameraApp.MouseDown(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
-  FLastX := AX;
-  FLastY := AY;
-  FMouseDown := True;
+  FCamera.ProcessMouseDown(AX, AY);
 end;
 
 procedure TCameraApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
-var
-  XOffset, YOffset: Single;
 begin
-  if (FMouseDown) then
-  begin
-    XOffset := AX - FLastX;
-    YOffset := FLastY - AY; { Reversed since y-coordinates go from bottom to left }
-
-    FLastX := AX;
-    FLastY := AY;
-
-    FCamera.ProcessMouseMovement(XOffset, YOffset);
-  end;
+  FCamera.ProcessMouseMove(AX, AY);
 end;
 
 procedure TCameraApp.MouseUp(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
-  FMouseDown := False;
+  FCamera.ProcessMouseUp;
 end;
 
 procedure TCameraApp.MouseWheel(const AShift: TShiftState;
   const AWheelDelta: Integer);
 begin
-  FCamera.ProcessMouseScroll(AWheelDelta);
+  FCamera.ProcessMouseWheel(AWheelDelta);
+end;
+
+procedure TCameraApp.Resize(const AWidth, AHeight: Integer);
+begin
+  inherited;
+  if Assigned(FCamera) then
+    FCamera.ViewResized(AWidth, AHeight);
 end;
 
 procedure TCameraApp.Shutdown;
@@ -295,7 +247,8 @@ var
   Model, View, Projection, Rotate: TMatrix4;
   I: Integer;
 begin
-  HandleInput(ADeltaTimeSec);
+  { Handle any input that happened since the last frame }
+  FCamera.HandleInput(ADeltaTimeSec);
 
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

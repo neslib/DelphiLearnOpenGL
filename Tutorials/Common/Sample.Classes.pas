@@ -7,6 +7,8 @@ interface
 uses
   {$INCLUDE 'OpenGL.inc'}
   System.Classes,
+  System.Types,
+  System.UITypes,
   System.SysUtils,
   System.Zip,
   Neslib.FastMath;
@@ -263,9 +265,6 @@ type
   end;
 
 type
-  TCameraMovement = (Forward, Backward, Left, Right);
-
-type
   { Represents a camera in 3D space.
     Implemented in the TCamera class. }
   ICamera = interface
@@ -297,34 +296,73 @@ type
       matrix }
     function GetViewMatrix: TMatrix4;
 
-    { Processes input received from any keyboard-like input system.
+    { Call this when the view (screen) has resized.
 
       Parameters:
-        ADirection: direction to move. When using a keyboard, you typically map
-          these directions:
-          * Forward: W- or Up-key
-          * Backward: S- or Down-key
-          * Left: A or Left-key
-          * Right: D or Right-key
-        ADeltaTimeSec: time for the current frame in seconds. }
-    procedure ProcessKeyboard(const ADirection: TCameraMovement;
-      const ADeltaTimeSec: Single);
+        AWidth: new width of the view
+        AHeight: new height of the view }
+    procedure ViewResized(const AWidth, AHeight: Integer);
 
-    { Processes input received from a mouse input system.
+    { Handles camera-related key down events.
 
       Parameters:
-        AXOffset: number of pixels the mouse moved in X direction
-        AYOffset: number of pixels the mouse moved in Y direction
-        AConstrainPitch: (optional) whether to constrain the pitch angle
-          (so screen doesn't get flipped). Defaults to True. }
-    procedure ProcessMouseMovement(const AXOffset, AYOffset: Single;
-      const AConstrainPitch: Boolean = True);
+        AKey: virtual key code (one of the vk* constants in the System.UITypes
+          unit)
 
-    { Processes input received from a mouse scroll-wheel event.
+      Processes WASD and cursor keys to move the camera (Walk Around). }
+    procedure ProcessKeyDown(const AKey: Integer);
+
+    { Handles camera-related key up events.
 
       Parameters:
-        AWheelDelta: number of notches the mouse wheel moved. }
-    procedure ProcessMouseScroll(const AWheelDelta: Single);
+        AKey: virtual key code (one of the vk* constants in the System.UITypes
+          unit)
+
+      Processes WASD and cursor keys to move the camera (Walk Around). }
+    procedure ProcessKeyUp(const AKey: Integer);
+
+    { Handles camera-related mouse/finger down events.
+
+      Parameters:
+        AX: X-position
+        AY: Y-position
+
+      Handles mouse movement to orient the camera (Look Around).
+      When the mouse/finger is held down near an edge of the screen, it is used
+      to simulate a WASD key event. }
+    procedure ProcessMouseDown(const AX, AY: Single);
+
+    { Handles camera-related mouse/finger movement events.
+
+      Parameters:
+        AX: X-position
+        AY: Y-position
+
+      Handles mouse movement to orient the camera (Look Around).
+      When the mouse/finger is held down near an edge of the screen, it is used
+      to simulate a WASD key event. }
+    procedure ProcessMouseMove(const AX, AY: Single);
+
+    { Handles camera-related mouse/finger up events.
+
+      Handles mouse movement to orient the camera (Look Around).
+      When the mouse/finger is held down near an edge of the screen, it is used
+      to simulate a WASD key event. }
+    procedure ProcessMouseUp;
+
+    { Handles camera-related mouse wheel events.
+
+      Parameters:
+        AWheelDelta: number of notches the mouse wheel moved.
+
+      Handles zooming the camera in and out (changing the Field of View) }
+    procedure ProcessMouseWheel(const AWheelDelta: Integer);
+
+    { Processes any input that happened since the last frame.
+
+      Parameters:
+        ADeltaTimeSec: time since the last frame in seconds. }
+    procedure HandleInput(const ADeltaTimeSec: Single);
 
     { Position of the camera in the world.
       Defaults to the world origin (0, 0, 0). }
@@ -386,6 +424,16 @@ type
     FMovementSpeed: Single;
     FSensitivity: Single;
     FZoom: Single;
+  private
+    { Input }
+    FLastX: Single;
+    FLastY: Single;
+    FScreenEdge: TRectF;
+    FLookAround: Boolean;
+    FKeyW: Boolean;
+    FKeyA: Boolean;
+    FKeyS: Boolean;
+    FKeyD: Boolean;
   protected
     function _GetPosition: TVector3;
     procedure _SetPosition(const AValue: TVector3);
@@ -409,30 +457,39 @@ type
     procedure _SetZoom(const AValue: Single);
 
     function GetViewMatrix: TMatrix4;
-    procedure ProcessKeyboard(const ADirection: TCameraMovement;
-      const ADeltaTimeSec: Single);
+    procedure ViewResized(const AWidth, AHeight: Integer);
+    procedure ProcessKeyDown(const AKey: Integer);
+    procedure ProcessKeyUp(const AKey: Integer);
+    procedure ProcessMouseDown(const AX, AY: Single);
+    procedure ProcessMouseMove(const AX, AY: Single);
+    procedure ProcessMouseUp;
+    procedure ProcessMouseWheel(const AWheelDelta: Integer);
+    procedure HandleInput(const ADeltaTimeSec: Single);
+  private
     procedure ProcessMouseMovement(const AXOffset, AYOffset: Single;
       const AConstrainPitch: Boolean = True);
-    procedure ProcessMouseScroll(const AWheelDelta: Single);
-  private
+    procedure UpdateScreenEdge(const AViewWidth, AViewHeight: Single);
     procedure UpdateCameraVectors;
   {$ENDREGION 'Internal Declarations'}
   public
     { Creates a camera.
 
       Parameters:
+        AViewWidth: width of the view (screen)
+        AViewHeight: width of the view (screen)
         APosition: (optional) position of the camera in 3D space.
           Defaults to world origin (0, 0, 0).
         AUp: (optional) world up vector. Defaults to (0, 1, 0).
         AYaw: (optional) yaw angle in degrees. Defaults to -90.
         APitch: (optional) pitch angle in degrees. Defaults to 0. }
-    constructor Create(const AYaw: Single = DEFAULT_YAW;
-      const APitch: Single = DEFAULT_PITCH); overload;
-    constructor Create(const APosition: TVector3;
+    constructor Create(const AViewWidth, AViewHeight: Integer;
       const AYaw: Single = DEFAULT_YAW;
       const APitch: Single = DEFAULT_PITCH); overload;
-    constructor Create(const APosition, AUp: TVector3;
-      const AYaw: Single = DEFAULT_YAW;
+    constructor Create(const AViewWidth, AViewHeight: Integer;
+      const APosition: TVector3; const AYaw: Single = DEFAULT_YAW;
+      const APitch: Single = DEFAULT_PITCH); overload;
+    constructor Create(const AViewWidth, AViewHeight: Integer;const APosition,
+      AUp: TVector3; const AYaw: Single = DEFAULT_YAW;
       const APitch: Single = DEFAULT_PITCH); overload;
   end;
 
@@ -463,7 +520,7 @@ uses
   {$IFDEF ANDROID}
   Posix.Dlfcn,
   {$ENDIF}
-  System.Types;
+  Sample.Platform;
 
 {$IFDEF DEBUG}
 procedure glErrorCheck;
@@ -908,13 +965,14 @@ end;
 
 { TCamera }
 
-constructor TCamera.Create(const AYaw, APitch: Single);
+constructor TCamera.Create(const AViewWidth, AViewHeight: Integer; const AYaw,
+  APitch: Single);
 begin
-  Create(Vector3(0, 0, 0), Vector3(0, 1, 0), AYaw, APitch);
+  Create(AViewWidth, AViewHeight, Vector3(0, 0, 0), Vector3(0, 1, 0), AYaw, APitch);
 end;
 
-constructor TCamera.Create(const APosition, AUp: TVector3; const AYaw,
-  APitch: Single);
+constructor TCamera.Create(const AViewWidth, AViewHeight: Integer;
+  const APosition, AUp: TVector3; const AYaw, APitch: Single);
 begin
   inherited Create;
   FFront := Vector3(0, 0, -1);
@@ -925,6 +983,7 @@ begin
   FWorldUp := AUp;
   FYaw := AYaw;
   FPitch := APitch;
+  UpdateScreenEdge(AViewWidth, AViewHeight);
   UpdateCameraVectors;
 end;
 
@@ -933,24 +992,107 @@ begin
   Result.InitLookAtRH(FPosition, FPosition + FFront, FUp);
 end;
 
-procedure TCamera.ProcessKeyboard(const ADirection: TCameraMovement;
-  const ADeltaTimeSec: Single);
+procedure TCamera.HandleInput(const ADeltaTimeSec: Single);
 var
   Velocity: Single;
 begin
   Velocity := FMovementSpeed * ADeltaTimeSec;
-  case ADirection of
-    TCameraMovement.Forward:
-      FPosition := FPosition + (FFront * Velocity);
+  if (FKeyW) then
+    FPosition := FPosition + (FFront * Velocity);
 
-    TCameraMovement.Backward:
-      FPosition := FPosition - (FFront * Velocity);
+  if (FKeyS) then
+    FPosition := FPosition - (FFront * Velocity);
 
-    TCameraMovement.Left:
-      FPosition := FPosition - (FRight * Velocity);
+  if (FKeyA) then
+    FPosition := FPosition - (FRight * Velocity);
 
-    TCameraMovement.Right:
-      FPosition := FPosition + (FRight * Velocity);
+  if (FKeyD) then
+    FPosition := FPosition + (FRight * Velocity);
+end;
+
+procedure TCamera.ProcessKeyDown(const AKey: Integer);
+begin
+  if (AKey = vkW) or (AKey = vkUp) then
+    FKeyW := True;
+
+  if (AKey = vkA) or (AKey = vkLeft) then
+    FKeyA := True;
+
+  if (AKey = vkS) or (AKey = vkDown) then
+    FKeyS := True;
+
+  if (AKey = vkD) or (AKey = vkRight) then
+    FKeyD := True;
+end;
+
+procedure TCamera.ProcessKeyUp(const AKey: Integer);
+begin
+  if (AKey = vkW) or (AKey = vkUp) then
+    FKeyW := False;
+
+  if (AKey = vkA) or (AKey = vkLeft) then
+    FKeyA := False;
+
+  if (AKey = vkS) or (AKey = vkDown) then
+    FKeyS := False;
+
+  if (AKey = vkD) or (AKey = vkRight) then
+    FKeyD := False;
+end;
+
+procedure TCamera.ProcessMouseDown(const AX, AY: Single);
+begin
+  { Check if mouse/finger is pressed near the edge of the screen.
+    If so, simulate a WASD key event. This way, we can move the camera around
+    on mobile devices that don't have a keyboard. }
+  FLookAround := True;
+
+  if (AX < FScreenEdge.Left) then
+  begin
+    FKeyA := True;
+    FLookAround := False;
+  end
+  else
+  if (AX > FScreenEdge.Right) then
+  begin
+    FKeyD := True;
+    FLookAround := False;
+  end;
+
+  if (AY < FScreenEdge.Top) then
+  begin
+    FKeyW := True;
+    FLookAround := False;
+  end
+  else
+  if (AY > FScreenEdge.Bottom) then
+  begin
+    FKeyS := True;
+    FLookAround := False;
+  end;
+
+  if (FLookAround) then
+  begin
+    { Mouse/finger was pressed in center area of screen.
+      This is used for Look Around mode. }
+    FLastX := AX;
+    FLastY := AY;
+  end;
+end;
+
+procedure TCamera.ProcessMouseMove(const AX, AY: Single);
+var
+  XOffset, YOffset: Single;
+begin
+  if (FLookAround) then
+  begin
+    XOffset := AX - FLastX;
+    YOffset := FLastY - AY; { Reversed since y-coordinates go from bottom to left }
+
+    FLastX := AX;
+    FLastY := AY;
+
+    ProcessMouseMovement(XOffset, YOffset);
   end;
 end;
 
@@ -972,15 +1114,29 @@ begin
   UpdateCameraVectors;
 end;
 
-procedure TCamera.ProcessMouseScroll(const AWheelDelta: Single);
+procedure TCamera.ProcessMouseUp;
+begin
+  if (not FLookAround) then
+  begin
+    { Mouse/finger was pressed near edge of screen to emulate WASD keys.
+      "Release" those keys now. }
+    FKeyW := False;
+    FKeyA := False;
+    FKeyS := False;
+    FKeyD := False;
+  end;
+  FLookAround := False;
+end;
+
+procedure TCamera.ProcessMouseWheel(const AWheelDelta: Integer);
 begin
   FZoom := EnsureRange(FZoom - AWheelDelta, 1, 45);
 end;
 
-constructor TCamera.Create(const APosition: TVector3; const AYaw,
-  APitch: Single);
+constructor TCamera.Create(const AViewWidth, AViewHeight: Integer;
+  const APosition: TVector3; const AYaw, APitch: Single);
 begin
-  Create(APosition, Vector3(0, 1, 0), AYaw, APitch);
+  Create(AViewWidth, AViewHeight, APosition, Vector3(0, 1, 0), AYaw, APitch);
 end;
 
 procedure TCamera.UpdateCameraVectors;
@@ -1004,6 +1160,28 @@ begin
     look up or down which results in slower movement. }
   FRight := FFront.Cross(FWorldUp).NormalizeFast;
   FUp := FRight.Cross(FFront).NormalizeFast;
+end;
+
+procedure TCamera.UpdateScreenEdge(const AViewWidth, AViewHeight: Single);
+const
+  EDGE_THRESHOLD = 0.15; // 15%
+var
+  ViewWidth, ViewHeight: Single;
+begin
+  { Set the screen edge thresholds based on the dimensions of the screen/view.
+    These threshold are used to emulate WASD keys when a mouse/finger is
+    pressed near the edge of the screen. }
+  ViewWidth := AViewWidth / TPlatform.ScreenScale;
+  ViewHeight := AViewHeight / TPlatform.ScreenScale;
+  FScreenEdge.Left := EDGE_THRESHOLD * ViewWidth;
+  FScreenEdge.Top := EDGE_THRESHOLD * ViewHeight;
+  FScreenEdge.Right := (1 - EDGE_THRESHOLD) * ViewWidth;
+  FScreenEdge.Bottom := (1 - EDGE_THRESHOLD) * ViewHeight;
+end;
+
+procedure TCamera.ViewResized(const AWidth, AHeight: Integer);
+begin
+  UpdateScreenEdge(AWidth, AHeight);
 end;
 
 function TCamera._GetFront: TVector3;

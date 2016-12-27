@@ -24,8 +24,10 @@ type
     FConfig: EGLConfig;
     FWidth: Integer;
     FHeight: Integer;
+    FInvScreenScale: Single;
   private
     class procedure Setup; static;
+    class procedure SetupScreenScale; static;
     class procedure SetupInput; static;
     class procedure RunLoop; static;
     class procedure Shutdown; static;
@@ -48,8 +50,11 @@ uses
   System.Classes,
   System.UITypes,
   System.SysUtils,
+  Androidapi.Helpers,
   Androidapi.Looper,
-  Androidapi.NativeWindow;
+  Androidapi.NativeWindow,
+  Androidapi.JNI.GraphicsContentViewText,
+  Androidapi.JNI.Util;
 
 const
   { Missing Delphi declarations }
@@ -122,6 +127,7 @@ begin
   app_dummy;
 
   Setup;
+  SetupScreenScale;
   SetupInput;
   RunLoop;
   App.Shutdown;
@@ -203,8 +209,8 @@ begin
         else
           Exit(0);
 
-        X := AMotionEvent_getX(Event, 0);
-        Y := AMotionEvent_getY(Event, 0);
+        X := AMotionEvent_getX(Event, 0) * FInvScreenScale;
+        Y := AMotionEvent_getY(Event, 0) * FInvScreenScale;
         Count := AMotionEvent_getPointerCount(Event);
 
         Action := ActionBits and AMOTION_EVENT_ACTION_MASK;
@@ -292,6 +298,16 @@ end;
 class procedure TPlatformAndroid.SetupInput;
 begin
   { TODO }
+end;
+
+class procedure TPlatformAndroid.SetupScreenScale;
+var
+  Metrics: JDisplayMetrics;
+begin
+  Metrics := TAndroidHelper.DisplayMetrics;
+  if Assigned(Metrics) then
+    TPlatformAndroid.ScreenScale := Metrics.density;
+  FInvScreenScale := 1 / TPlatformAndroid.ScreenScale;
 end;
 
 class procedure TPlatformAndroid.Shutdown;

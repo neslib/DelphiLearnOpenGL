@@ -129,7 +129,7 @@ type
       Parameters:
         AWidth: new width of the framebuffer
         AHeight: new height of the framebuffer }
-    procedure Resize(const AWidth, AHeight: Integer);
+    procedure Resize(const AWidth, AHeight: Integer); virtual;
 
     { Call this method to manually terminate the app. }
     procedure Terminate;

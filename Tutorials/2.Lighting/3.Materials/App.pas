@@ -13,21 +13,26 @@ uses
   Sample.App;
 
 type
-  TBasicLightingApp = class(TApplication)
+  TMaterialsApp = class(TApplication)
   private
     FCamera: ICamera;
     FLightingShader: IShader;
     FLampShader: IShader;
     FLightingVAO: IVertexArray;
     FLampVAO: IVertexArray;
-    FUniformLightPos: GLint;
     FUniformViewPos: GLint;
-    FUniformLightColor: GLint;
-    FUniformObjectColor: GLint;
-    FUniformLightingModel: GLint;
-    FUniformLightingView: GLint;
-    FUniformLightingProjection: GLint;
-    FUniformLightingNormalMatrix: GLint;
+    FUniformLightPosition: GLint;
+    FUniformLightAmbient: GLint;
+    FUniformLightDiffuse: GLint;
+    FUniformLightSpecular: GLint;
+    FUniformMaterialAmbient: GLint;
+    FUniformMaterialDiffuse: GLint;
+    FUniformMaterialSpecular: GLint;
+    FUniformMaterialShininess: GLint;
+    FUniformContainerModel: GLint;
+    FUniformContainerView: GLint;
+    FUniformContainerProjection: GLint;
+    FUniformContainerNormalMatrix: GLint;
     FUniformLampModel: GLint;
     FUniformLampView: GLint;
     FUniformLampProjection: GLint;
@@ -136,9 +141,9 @@ const
 const
   LIGHT_POS: TVector3 = (X: 1.2; Y: 1.0; Z: 2.0);
 
-{ TBasicLightingApp }
+{ TMaterialsApp }
 
-procedure TBasicLightingApp.Initialize;
+procedure TMaterialsApp.Initialize;
 var
   VertexLayout: TVertexLayout;
 begin
@@ -152,15 +157,20 @@ begin
   FCamera := TCamera.Create(Width, Height, Vector3(0, 0, 3));
 
   { Build and compile our shader programs }
-  FLightingShader := TShader.Create('shaders/basic_lighting.vs', 'shaders/basic_lighting.fs');
-  FUniformLightPos := FLightingShader.GetUniformLocation('lightPos');
+  FLightingShader := TShader.Create('shaders/materials.vs', 'shaders/materials.fs');
   FUniformViewPos := FLightingShader.GetUniformLocation('viewPos');
-  FUniformLightColor := FLightingShader.GetUniformLocation('lightColor');
-  FUniformObjectColor := FLightingShader.GetUniformLocation('objectColor');
-  FUniformLightingModel := FLightingShader.GetUniformLocation('model');
-  FUniformLightingView := FLightingShader.GetUniformLocation('view');
-  FUniformLightingProjection := FLightingShader.GetUniformLocation('projection');
-  FUniformLightingNormalMatrix := FLightingShader.GetUniformLocation('normalMatrix');
+  FUniformLightPosition := FLightingShader.GetUniformLocation('light.position');
+  FUniformLightAmbient := FLightingShader.GetUniformLocation('light.ambient');
+  FUniformLightDiffuse := FLightingShader.GetUniformLocation('light.diffuse');
+  FUniformLightSpecular := FLightingShader.GetUniformLocation('light.specular');
+  FUniformMaterialAmbient := FLightingShader.GetUniformLocation('material.ambient');
+  FUniformMaterialDiffuse := FLightingShader.GetUniformLocation('material.diffuse');
+  FUniformMaterialSpecular := FLightingShader.GetUniformLocation('material.specular');
+  FUniformMaterialShininess := FLightingShader.GetUniformLocation('material.shininess');
+  FUniformContainerModel := FLightingShader.GetUniformLocation('model');
+  FUniformContainerView := FLightingShader.GetUniformLocation('view');
+  FUniformContainerProjection := FLightingShader.GetUniformLocation('projection');
+  FUniformContainerNormalMatrix := FLightingShader.GetUniformLocation('normalMatrix');
 
   FLampShader := TShader.Create('shaders/lamp.vs', 'shaders/lamp.fs');
   FUniformLampModel := FLampShader.GetUniformLocation('model');
@@ -185,7 +195,7 @@ begin
     LAMP_VERTICES, SizeOf(LAMP_VERTICES), INDICES);
 end;
 
-procedure TBasicLightingApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TMaterialsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   if (AKey = vkEscape) then
     { Terminate app when Esc key is pressed }
@@ -194,50 +204,51 @@ begin
     FCamera.ProcessKeyDown(AKey);
 end;
 
-procedure TBasicLightingApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
+procedure TMaterialsApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
 begin
   FCamera.ProcessKeyUp(AKey);
 end;
 
-procedure TBasicLightingApp.MouseDown(const AButton: TMouseButton;
+procedure TMaterialsApp.MouseDown(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseDown(AX, AY);
 end;
 
-procedure TBasicLightingApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
+procedure TMaterialsApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseMove(AX, AY);
 end;
 
-procedure TBasicLightingApp.MouseUp(const AButton: TMouseButton;
+procedure TMaterialsApp.MouseUp(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseUp;
 end;
 
-procedure TBasicLightingApp.MouseWheel(const AShift: TShiftState;
+procedure TMaterialsApp.MouseWheel(const AShift: TShiftState;
   const AWheelDelta: Integer);
 begin
   FCamera.ProcessMouseWheel(AWheelDelta);
 end;
 
-procedure TBasicLightingApp.Resize(const AWidth, AHeight: Integer);
+procedure TMaterialsApp.Resize(const AWidth, AHeight: Integer);
 begin
   inherited;
   if Assigned(FCamera) then
     FCamera.ViewResized(AWidth, AHeight);
 end;
 
-procedure TBasicLightingApp.Shutdown;
+procedure TMaterialsApp.Shutdown;
 begin
   { Nothing to do }
 end;
 
-procedure TBasicLightingApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TMaterialsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
   Model, View, Projection, Translate, Scale: TMatrix4;
   NormalMatrix: TMatrix3;
+  LightColor, DiffuseColor, AmbientColor: TVector3;
 begin
   FCamera.HandleInput(ADeltaTimeSec);
 
@@ -250,18 +261,32 @@ begin
 
   { Use corresponding shader when setting uniforms/drawing objects }
   FLightingShader.Use;
-  glUniform3f(FUniformObjectColor, 1.0, 0.5, 0.31);
-  glUniform3f(FUniformLightColor, 1.0, 1.0, 1.0);
-  glUniform3f(FUniformLightPos, LIGHT_POS.X, LIGHT_POS.Y, LIGHT_POS.Z);
+  glUniform3f(FUniformLightPosition, LIGHT_POS.X, LIGHT_POS.Y, LIGHT_POS.Z);
   glUniform3f(FUniformViewPos, FCamera.Position.X, FCamera.Position.Y, FCamera.Position.Z);
+
+  { Set light properties }
+  LightColor.R := Sin(ATotalTimeSec * 2.0);
+  LightColor.G := Sin(ATotalTimeSec * 0.7);
+  LightColor.B := Sin(ATotalTimeSec * 1.3);
+  DiffuseColor := LightColor * 0.5;   // Decrease the influence
+  AmbientColor := DiffuseColor * 0.2; // Low influence
+  glUniform3f(FUniformLightAmbient, AmbientColor.R, AmbientColor.G, AmbientColor.B);
+  glUniform3f(FUniformLightDiffuse, DiffuseColor.R, DiffuseColor.G, DiffuseColor.B);
+  glUniform3f(FUniformLightSpecular, 1.0, 1.0, 1.0);
+
+  { Set material properties }
+  glUniform3f(FUniformMaterialAmbient,   1.0, 0.5, 0.31);
+  glUniform3f(FUniformMaterialDiffuse,   1.0, 0.5, 0.31);
+  glUniform3f(FUniformMaterialSpecular,  0.5, 0.5, 0.5); // Specular doesn't have full effect on this object's material
+  glUniform1f(FUniformMaterialShininess, 32.0);
 
   { Create camera transformation }
   View := FCamera.GetViewMatrix;
   Projection.InitPerspectiveFovRH(Radians(FCamera.Zoom), Width / Height, 0.1, 100.0);
 
   { Pass matrices to shader }
-  glUniformMatrix4fv(FUniformLightingView, 1, GL_FALSE, @View);
-  glUniformMatrix4fv(FUniformLightingProjection, 1, GL_FALSE, @Projection);
+  glUniformMatrix4fv(FUniformContainerView, 1, GL_FALSE, @View);
+  glUniformMatrix4fv(FUniformContainerProjection, 1, GL_FALSE, @Projection);
 
   { Create Model matrix and calculate Normal Matrix }
   Model.Init;
@@ -269,8 +294,8 @@ begin
   NormalMatrix := NormalMatrix.Inverse.Transpose;
 
   { Draw the container }
-  glUniformMatrix4fv(FUniformLightingModel, 1, GL_FALSE, @Model);
-  glUniformMatrix3fv(FUniformLightingNormalMatrix, 1, GL_FALSE, @NormalMatrix);
+  glUniformMatrix4fv(FUniformContainerModel, 1, GL_FALSE, @Model);
+  glUniformMatrix3fv(FUniformContainerNormalMatrix, 1, GL_FALSE, @NormalMatrix);
   FLightingVAO.Render;
 
   { Also draw the lamp object }

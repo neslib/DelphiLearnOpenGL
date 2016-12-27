@@ -282,9 +282,10 @@ begin
     display zoom feature on iPhone 6/6 Plus. }
   Screen := TUIScreen.Wrap(TUIScreen.OCClass.mainScreen);
   if (TOSVersion.Check(8)) then
-    View.setContentScaleFactor(Screen.nativeScale)
+    TPlatformIOS.ScreenScale := Screen.nativeScale
   else
-    View.setContentScaleFactor(Screen.scale);
+    TPlatformIOS.ScreenScale := Screen.scale;
+  View.setContentScaleFactor(TPlatformIOS.ScreenScale);
 
   { Make view layer opaque }
   EAGLLayer := TCAEAGLLayer.Wrap((View.layer as ILocalObject).GetObjectID);

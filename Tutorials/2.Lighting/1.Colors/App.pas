@@ -28,19 +28,12 @@ type
     FUniformLampModel: GLint;
     FUniformLampView: GLint;
     FUniformLampProjection: GLint;
-    FLastX: Single;
-    FLastY: Single;
-    FMouseDown: Boolean;
-    FKeyW: Boolean;
-    FKeyA: Boolean;
-    FKeyS: Boolean;
-    FKeyD: Boolean;
-  private
-    procedure HandleInput(const ADeltaTimeSec: Single);
   public
     procedure Initialize; override;
     procedure Update(const ADeltaTimeSec, ATotalTimeSec: Double); override;
     procedure Shutdown; override;
+    procedure Resize(const AWidth, AHeight: Integer); override;
+  public
     procedure KeyDown(const AKey: Integer; const AShift: TShiftState); override;
     procedure KeyUp(const AKey: Integer; const AShift: TShiftState); override;
     procedure MouseDown(const AButton: TMouseButton; const AShift: TShiftState;
@@ -107,21 +100,6 @@ const
 
 { TColorsApp }
 
-procedure TColorsApp.HandleInput(const ADeltaTimeSec: Single);
-begin
-  if (FKeyW) then
-    FCamera.ProcessKeyboard(TCameraMovement.Forward, ADeltaTimeSec);
-
-  if (FKeyS) then
-    FCamera.ProcessKeyboard(TCameraMovement.Backward, ADeltaTimeSec);
-
-  if (FKeyA) then
-    FCamera.ProcessKeyboard(TCameraMovement.Left, ADeltaTimeSec);
-
-  if (FKeyD) then
-    FCamera.ProcessKeyboard(TCameraMovement.Right, ADeltaTimeSec);
-end;
-
 procedure TColorsApp.Initialize;
 var
   VertexLayout: TVertexLayout;
@@ -133,7 +111,7 @@ begin
   glEnable(GL_DEPTH_TEST);
 
   { Create camera }
-  FCamera := TCamera.Create(Vector3(0, 0, 3));
+  FCamera := TCamera.Create(Width, Height, Vector3(0, 0, 3));
 
   { Build and compile our shader programs }
   FLightingShader := TShader.Create('shaders/colors.vs', 'shaders/colors.fs');
@@ -166,72 +144,46 @@ end;
 
 procedure TColorsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
-  { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
-    Terminate;
-
-  if (AKey = vkW) or (AKey = vkUp) then
-    FKeyW := True;
-
-  if (AKey = vkA) or (AKey = vkLeft) then
-    FKeyA := True;
-
-  if (AKey = vkS) or (AKey = vkDown) then
-    FKeyS := True;
-
-  if (AKey = vkD) or (AKey = vkRight) then
-    FKeyD := True;
+    { Terminate app when Esc key is pressed }
+    Terminate
+  else
+    FCamera.ProcessKeyDown(AKey);
 end;
 
 procedure TColorsApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
 begin
-  if (AKey = vkW) or (AKey = vkUp) then
-    FKeyW := False;
-
-  if (AKey = vkA) or (AKey = vkLeft) then
-    FKeyA := False;
-
-  if (AKey = vkS) or (AKey = vkDown) then
-    FKeyS := False;
-
-  if (AKey = vkD) or (AKey = vkRight) then
-    FKeyD := False;
+  FCamera.ProcessKeyUp(AKey);
 end;
 
 procedure TColorsApp.MouseDown(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
-  FLastX := AX;
-  FLastY := AY;
-  FMouseDown := True;
+  FCamera.ProcessMouseDown(AX, AY);
 end;
 
 procedure TColorsApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
-var
-  XOffset, YOffset: Single;
 begin
-  if (FMouseDown) then
-  begin
-    XOffset := AX - FLastX;
-    YOffset := FLastY - AY; { Reversed since y-coordinates go from bottom to left }
-
-    FLastX := AX;
-    FLastY := AY;
-
-    FCamera.ProcessMouseMovement(XOffset, YOffset);
-  end;
+  FCamera.ProcessMouseMove(AX, AY);
 end;
 
 procedure TColorsApp.MouseUp(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
-  FMouseDown := False;
+  FCamera.ProcessMouseUp;
 end;
 
 procedure TColorsApp.MouseWheel(const AShift: TShiftState;
   const AWheelDelta: Integer);
 begin
-  FCamera.ProcessMouseScroll(AWheelDelta);
+  FCamera.ProcessMouseWheel(AWheelDelta);
+end;
+
+procedure TColorsApp.Resize(const AWidth, AHeight: Integer);
+begin
+  inherited;
+  if Assigned(FCamera) then
+    FCamera.ViewResized(AWidth, AHeight);
 end;
 
 procedure TColorsApp.Shutdown;
@@ -243,7 +195,7 @@ procedure TColorsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
   Model, View, Projection, Translate, Scale: TMatrix4;
 begin
-  HandleInput(ADeltaTimeSec);
+  FCamera.HandleInput(ADeltaTimeSec);
 
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

@@ -12,7 +12,7 @@ uses
   Sample.App;
 
 type
-  TTransformations = class(TApplication)
+  TTransformationsApp = class(TApplication)
   private
     FShader: IShader;
     FVertexArray: IVertexArray;
@@ -50,9 +50,9 @@ const
     0, 1, 3,
     1, 2, 3);
 
-{ TTransformations }
+{ TTransformationsApp }
 
-procedure TTransformations.Initialize;
+procedure TTransformationsApp.Initialize;
 var
   VertexLayout: TVertexLayout;
   Data: TBytes;
@@ -128,20 +128,20 @@ begin
   glErrorCheck;
 end;
 
-procedure TTransformations.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TTransformationsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure TTransformations.Shutdown;
+procedure TTransformationsApp.Shutdown;
 begin
   glDeleteTextures(1, @FTexture1);
-  glDeleteTextures(2, @FTexture2);
+  glDeleteTextures(1, @FTexture2);
 end;
 
-procedure TTransformations.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TTransformationsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
   Rotation, Translation, Transform: TMatrix4;
 begin

@@ -11,5 +11,5 @@ uses
   Sample.Classes in '..\..\Common\Sample.Classes.pas';
 
 begin
-  RunApp(TTextures, 800, 600, 'Textures');
+  RunApp(TTexturesApp, 800, 600, 'Textures');
 end.

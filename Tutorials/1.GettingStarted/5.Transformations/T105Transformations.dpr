@@ -11,5 +11,5 @@ uses
   Sample.Classes in '..\..\Common\Sample.Classes.pas';
 
 begin
-  RunApp(TTransformations, 800, 600, 'Transformations');
+  RunApp(TTransformationsApp, 800, 600, 'Transformations');
 end.

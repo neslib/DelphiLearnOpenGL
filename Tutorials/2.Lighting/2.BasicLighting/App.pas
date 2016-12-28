@@ -18,7 +18,7 @@ type
     FCamera: ICamera;
     FLightingShader: IShader;
     FLampShader: IShader;
-    FLightingVAO: IVertexArray;
+    FContainerVAO: IVertexArray;
     FLampVAO: IVertexArray;
     FUniformLightPos: GLint;
     FUniformViewPos: GLint;
@@ -173,7 +173,7 @@ begin
     .Add('normal', 3);
 
   { Create the vertex array for the container. }
-  FLightingVAO := TVertexArray.Create(VertexLayout,
+  FContainerVAO := TVertexArray.Create(VertexLayout,
     CONTAINER_VERTICES, SizeOf(CONTAINER_VERTICES), INDICES);
 
   { Define layout of the attributes in the Lamp shader }
@@ -271,7 +271,7 @@ begin
   { Draw the container }
   glUniformMatrix4fv(FUniformLightingModel, 1, GL_FALSE, @Model);
   glUniformMatrix3fv(FUniformLightingNormalMatrix, 1, GL_FALSE, @NormalMatrix);
-  FLightingVAO.Render;
+  FContainerVAO.Render;
 
   { Also draw the lamp object }
   FLampShader.Use;

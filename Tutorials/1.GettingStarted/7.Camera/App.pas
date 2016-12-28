@@ -239,7 +239,7 @@ end;
 procedure TCameraApp.Shutdown;
 begin
   glDeleteTextures(1, @FTexture1);
-  glDeleteTextures(2, @FTexture2);
+  glDeleteTextures(1, @FTexture2);
 end;
 
 procedure TCameraApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);

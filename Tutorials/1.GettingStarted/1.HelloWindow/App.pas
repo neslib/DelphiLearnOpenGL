@@ -9,7 +9,7 @@ uses
   Sample.App;
 
 type
-  THelloWindow = class(TApplication)
+  THelloWindowApp = class(TApplication)
   public
     procedure Initialize; override;
     procedure Update(const ADeltaTimeSec, ATotalTimeSec: Double); override;
@@ -23,26 +23,26 @@ uses
   {$INCLUDE 'OpenGL.inc'}
   System.UITypes;
 
-{ THelloWindow }
+{ THelloWindowApp }
 
-procedure THelloWindow.Initialize;
+procedure THelloWindowApp.Initialize;
 begin
   { Not needed in this sample }
 end;
 
-procedure THelloWindow.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure THelloWindowApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure THelloWindow.Shutdown;
+procedure THelloWindowApp.Shutdown;
 begin
   { Not needed in this sample }
 end;
 
-procedure THelloWindow.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure THelloWindowApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 begin
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

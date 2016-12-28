@@ -10,7 +10,7 @@ uses
   Sample.App;
 
 type
-  TShaders = class(TApplication)
+  TShadersApp = class(TApplication)
   private
     FShader: IShader;
     FVertexArray: IVertexArray;
@@ -39,9 +39,9 @@ const
   { The indices define a single triangle }
   INDICES: array [0..2] of UInt16 = (0, 1, 2);
 
-{ TShaders }
+{ TShadersApp }
 
-procedure TShaders.Initialize;
+procedure TShadersApp.Initialize;
 var
   VertexLayout: TVertexLayout;
 begin
@@ -63,19 +63,19 @@ begin
     VERTICES, SizeOf(VERTICES), INDICES);
 end;
 
-procedure TShaders.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TShadersApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure TShaders.Shutdown;
+procedure TShadersApp.Shutdown;
 begin
   { Not needed in this sample }
 end;
 
-procedure TShaders.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TShadersApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 begin
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

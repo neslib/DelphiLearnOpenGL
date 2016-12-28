@@ -9,5 +9,5 @@ uses
   Sample.Classes in '..\..\Common\Sample.Classes.pas';
 
 begin
-  RunApp(THelloTriangle, 800, 600, 'Hello Triangle');
+  RunApp(THelloTriangleApp, 800, 600, 'Hello Triangle');
 end.

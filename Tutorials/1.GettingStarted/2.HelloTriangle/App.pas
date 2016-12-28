@@ -10,7 +10,7 @@ uses
   Sample.App;
 
 type
-  THelloTriangle = class(TApplication)
+  THelloTriangleApp = class(TApplication)
   private
     FShaderProgram: GLint;
     FVertexBuffer: GLuint;
@@ -58,9 +58,9 @@ const
     0, 1, 3,  // First Triangle
     1, 2, 3); // Second Triangle
 
-{ THelloTriangle }
+{ THelloTriangleApp }
 
-procedure THelloTriangle.Initialize;
+procedure THelloTriangleApp.Initialize;
 var
   VertexShader, FragmentShader, Status, LogLength: GLint;
   Source: RawByteString;
@@ -151,14 +151,14 @@ begin
   {$ENDIF}
 end;
 
-procedure THelloTriangle.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure THelloTriangleApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure THelloTriangle.Shutdown;
+procedure THelloTriangleApp.Shutdown;
 begin
   { Properly de-allocate all resources once they've outlived their purpose }
   glDeleteBuffers(1, @FIndexBuffer);
@@ -166,7 +166,7 @@ begin
   glDeleteProgram(FShaderProgram);
 end;
 
-procedure THelloTriangle.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure THelloTriangleApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 begin
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

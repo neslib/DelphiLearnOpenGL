@@ -12,7 +12,7 @@ uses
   Sample.App;
 
 type
-  TCoordinateSystems = class(TApplication)
+  TCoordinateSystemsApp = class(TApplication)
   private
     FShader: IShader;
     FVertexArray: IVertexArray;
@@ -96,9 +96,9 @@ const
     (X:  1.5; Y:  0.2; Z:  -1.5),
     (X: -1.3; Y:  1.0; Z:  -1.5));
 
-{ TCoordinateSystems }
+{ TCoordinateSystemsApp }
 
-procedure TCoordinateSystems.Initialize;
+procedure TCoordinateSystemsApp.Initialize;
 var
   VertexLayout: TVertexLayout;
   Data: TBytes;
@@ -179,20 +179,20 @@ begin
   glErrorCheck;
 end;
 
-procedure TCoordinateSystems.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TCoordinateSystemsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure TCoordinateSystems.Shutdown;
+procedure TCoordinateSystemsApp.Shutdown;
 begin
   glDeleteTextures(1, @FTexture1);
-  glDeleteTextures(2, @FTexture2);
+  glDeleteTextures(1, @FTexture2);
 end;
 
-procedure TCoordinateSystems.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TCoordinateSystemsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
   Model, View, Projection, Translate, Rotate: TMatrix4;
   I: Integer;

@@ -1,4 +1,4 @@
-program T103Shaders;
+program T204LightingMaps;
 
 {$R *.res}
 
@@ -11,5 +11,5 @@ uses
   Sample.Classes in '..\..\Common\Sample.Classes.pas';
 
 begin
-  RunApp(TShadersApp, 800, 600, 'Shaders');
+  RunApp(TLightingMapsApp, 800, 600, 'Lighting Maps');
 end.

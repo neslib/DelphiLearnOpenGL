@@ -12,7 +12,7 @@ uses
   Sample.App;
 
 type
-  TTextures = class(TApplication)
+  TTexturesApp = class(TApplication)
   private
     FShader: IShader;
     FVertexArray: IVertexArray;
@@ -48,9 +48,9 @@ const
     0, 1, 3,
     1, 2, 3);
 
-{ TTextures }
+{ TTexturesApp }
 
-procedure TTextures.Initialize;
+procedure TTexturesApp.Initialize;
 var
   VertexLayout: TVertexLayout;
   Data: TBytes;
@@ -125,20 +125,20 @@ begin
   glErrorCheck;
 end;
 
-procedure TTextures.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TTexturesApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   { Terminate app when Esc key is pressed }
   if (AKey = vkEscape) then
     Terminate;
 end;
 
-procedure TTextures.Shutdown;
+procedure TTexturesApp.Shutdown;
 begin
   glDeleteTextures(1, @FTexture1);
-  glDeleteTextures(2, @FTexture2);
+  glDeleteTextures(1, @FTexture2);
 end;
 
-procedure TTextures.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TTexturesApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 begin
   { Define the viewport dimensions }
   glViewport(0, 0, Width, Height);

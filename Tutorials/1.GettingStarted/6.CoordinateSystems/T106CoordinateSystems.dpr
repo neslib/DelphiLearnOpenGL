@@ -11,5 +11,5 @@ uses
   Sample.Classes in '..\..\Common\Sample.Classes.pas';
 
 begin
-  RunApp(TCoordinateSystems, 800, 600, 'Coordinate Systems');
+  RunApp(TCoordinateSystemsApp, 800, 600, 'Coordinate Systems');
 end.

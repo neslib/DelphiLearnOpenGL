@@ -13,21 +13,20 @@ uses
   Sample.App;
 
 type
-  TMaterialsApp = class(TApplication)
+  TLightingMapsApp = class(TApplication)
   private
     FCamera: ICamera;
     FLightingShader: IShader;
     FLampShader: IShader;
     FContainerVAO: IVertexArray;
     FLampVAO: IVertexArray;
+    FDiffuseMap: GLuint;
+    FSpecularMap: GLuint;
     FUniformViewPos: GLint;
     FUniformLightPosition: GLint;
     FUniformLightAmbient: GLint;
     FUniformLightDiffuse: GLint;
     FUniformLightSpecular: GLint;
-    FUniformMaterialAmbient: GLint;
-    FUniformMaterialDiffuse: GLint;
-    FUniformMaterialSpecular: GLint;
     FUniformMaterialShininess: GLint;
     FUniformContainerModel: GLint;
     FUniformContainerView: GLint;
@@ -59,39 +58,40 @@ uses
   Neslib.FastMath;
 
 const
-  { Each container vertex consists of a 3-element position and a 3-element normal.
+  { Each container vertex consists of a 3-element position and a 3-element
+    normal and a 2-element texture coordinate.
     Each group of 4 vertices defines a side of a cube. }
-  CONTAINER_VERTICES: array [0..143] of Single = (
-    // Positions      // Normals
-    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-     0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-     0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+  CONTAINER_VERTICES: array [0..191] of Single = (
+    // Positions      // Normals         // Texture Coords
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 0.0,
+     0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 0.0,
+     0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0, 1.0,
+    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  0.0, 1.0,
 
-    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-     0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-     0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  0.0, 0.0,
+     0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 0.0,
+     0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0,
+    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  0.0, 1.0,
 
-    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0, 0.0,
+    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,  1.0, 1.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0, 1.0,
+    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,  0.0, 0.0,
 
-     0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-     0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
-     0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-     0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+     0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
+     0.5,  0.5, -0.5,  1.0,  0.0,  0.0,  1.0, 1.0,
+     0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0, 1.0,
+     0.5, -0.5,  0.5,  1.0,  0.0,  0.0,  0.0, 0.0,
 
-    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-     0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-     0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0, 1.0,
+     0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  1.0, 1.0,
+     0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0, 0.0,
+    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  0.0, 0.0,
 
-    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-     0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-     0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0);
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0, 1.0,
+     0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  1.0, 1.0,
+     0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
+    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0);
 
 const
   { Each lamp vertex consists of a 3-element position.
@@ -141,11 +141,14 @@ const
 const
   LIGHT_POS: TVector3 = (X: 1.2; Y: 1.0; Z: 2.0);
 
-{ TMaterialsApp }
+{ TLightingMapsApp }
 
-procedure TMaterialsApp.Initialize;
+procedure TLightingMapsApp.Initialize;
 var
   VertexLayout: TVertexLayout;
+  Data: TBytes;
+  Image: Pointer;
+  ImageWidth, ImageHeight, ImageComponents: Integer;
 begin
   { Initialize the asset manager }
   TAssets.Initialize;
@@ -157,15 +160,12 @@ begin
   FCamera := TCamera.Create(Width, Height, Vector3(0, 0, 3));
 
   { Build and compile our shader programs }
-  FLightingShader := TShader.Create('shaders/materials.vs', 'shaders/materials.fs');
+  FLightingShader := TShader.Create('shaders/lighting_maps.vs', 'shaders/lighting_maps.fs');
   FUniformViewPos := FLightingShader.GetUniformLocation('viewPos');
   FUniformLightPosition := FLightingShader.GetUniformLocation('light.position');
   FUniformLightAmbient := FLightingShader.GetUniformLocation('light.ambient');
   FUniformLightDiffuse := FLightingShader.GetUniformLocation('light.diffuse');
   FUniformLightSpecular := FLightingShader.GetUniformLocation('light.specular');
-  FUniformMaterialAmbient := FLightingShader.GetUniformLocation('material.ambient');
-  FUniformMaterialDiffuse := FLightingShader.GetUniformLocation('material.diffuse');
-  FUniformMaterialSpecular := FLightingShader.GetUniformLocation('material.specular');
   FUniformMaterialShininess := FLightingShader.GetUniformLocation('material.shininess');
   FUniformContainerModel := FLightingShader.GetUniformLocation('model');
   FUniformContainerView := FLightingShader.GetUniformLocation('view');
@@ -180,7 +180,8 @@ begin
   { Define layout of the attributes in the Lighting shader }
   VertexLayout.Start(FLightingShader)
     .Add('position', 3)
-    .Add('normal', 3);
+    .Add('normal', 3)
+    .Add('texCoords', 2);
 
   { Create the vertex array for the container. }
   FContainerVAO := TVertexArray.Create(VertexLayout,
@@ -193,9 +194,63 @@ begin
   { Create the vertex array for the lamp. }
   FLampVAO := TVertexArray.Create(VertexLayout,
     LAMP_VERTICES, SizeOf(LAMP_VERTICES), INDICES);
+
+  { Load textures }
+
+  { Diffuse Map
+    =========== }
+  glGenTextures(1, @FDiffuseMap);
+  glBindTexture(GL_TEXTURE_2D, FDiffuseMap);
+
+  { Set our texture parameters }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  { Set texture filtering }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  { Load, create texture and generate mipmaps }
+  Data := TAssets.Load('textures/container2.png');
+  Assert(Assigned(Data));
+  Image := stbi_load_from_memory(Data, Length(Data), ImageWidth, ImageHeight, ImageComponents, 3);
+  Assert(Assigned(Image));
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ImageWidth, ImageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+  stbi_image_free(Image);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glErrorCheck;
+
+  { Specular Map
+    ============ }
+  glGenTextures(1, @FSpecularMap);
+  glBindTexture(GL_TEXTURE_2D, FSpecularMap);
+  { All upcoming GL_TEXTURE_2D operations now have effect on our texture object }
+
+  { Set our texture parameters }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  { Set texture filtering }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  { Load, create texture and generate mipmaps }
+  Data := TAssets.Load('textures/container2_specular.png');
+  Assert(Assigned(Data));
+  Image := stbi_load_from_memory(Data, Length(Data), ImageWidth, ImageHeight, ImageComponents, 3);
+  Assert(Assigned(Image));
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ImageWidth, ImageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+  stbi_image_free(Image);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glErrorCheck;
+
+  { Set texture units }
+  FLightingShader.Use;
+  glUniform1i(FLightingShader.GetUniformLocation('material.diffuse'), 0);
+  glUniform1i(FLightingShader.GetUniformLocation('material.specular'), 1);
 end;
 
-procedure TMaterialsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
+procedure TLightingMapsApp.KeyDown(const AKey: Integer; const AShift: TShiftState);
 begin
   if (AKey = vkEscape) then
     { Terminate app when Esc key is pressed }
@@ -204,51 +259,51 @@ begin
     FCamera.ProcessKeyDown(AKey);
 end;
 
-procedure TMaterialsApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
+procedure TLightingMapsApp.KeyUp(const AKey: Integer; const AShift: TShiftState);
 begin
   FCamera.ProcessKeyUp(AKey);
 end;
 
-procedure TMaterialsApp.MouseDown(const AButton: TMouseButton;
+procedure TLightingMapsApp.MouseDown(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseDown(AX, AY);
 end;
 
-procedure TMaterialsApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
+procedure TLightingMapsApp.MouseMove(const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseMove(AX, AY);
 end;
 
-procedure TMaterialsApp.MouseUp(const AButton: TMouseButton;
+procedure TLightingMapsApp.MouseUp(const AButton: TMouseButton;
   const AShift: TShiftState; const AX, AY: Single);
 begin
   FCamera.ProcessMouseUp;
 end;
 
-procedure TMaterialsApp.MouseWheel(const AShift: TShiftState;
+procedure TLightingMapsApp.MouseWheel(const AShift: TShiftState;
   const AWheelDelta: Integer);
 begin
   FCamera.ProcessMouseWheel(AWheelDelta);
 end;
 
-procedure TMaterialsApp.Resize(const AWidth, AHeight: Integer);
+procedure TLightingMapsApp.Resize(const AWidth, AHeight: Integer);
 begin
   inherited;
   if Assigned(FCamera) then
     FCamera.ViewResized(AWidth, AHeight);
 end;
 
-procedure TMaterialsApp.Shutdown;
+procedure TLightingMapsApp.Shutdown;
 begin
-  { Nothing to do }
+  glDeleteTextures(1, @FDiffuseMap);
+  glDeleteTextures(1, @FSpecularMap);
 end;
 
-procedure TMaterialsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
+procedure TLightingMapsApp.Update(const ADeltaTimeSec, ATotalTimeSec: Double);
 var
   Model, View, Projection, Translate, Scale: TMatrix4;
   NormalMatrix: TMatrix3;
-  LightColor, DiffuseColor, AmbientColor: TVector3;
 begin
   FCamera.HandleInput(ADeltaTimeSec);
 
@@ -265,19 +320,11 @@ begin
   glUniform3f(FUniformViewPos, FCamera.Position.X, FCamera.Position.Y, FCamera.Position.Z);
 
   { Set light properties }
-  LightColor.R := Sin(ATotalTimeSec * 2.0);
-  LightColor.G := Sin(ATotalTimeSec * 0.7);
-  LightColor.B := Sin(ATotalTimeSec * 1.3);
-  DiffuseColor := LightColor * 0.5;   // Decrease the influence
-  AmbientColor := DiffuseColor * 0.2; // Low influence
-  glUniform3f(FUniformLightAmbient, AmbientColor.R, AmbientColor.G, AmbientColor.B);
-  glUniform3f(FUniformLightDiffuse, DiffuseColor.R, DiffuseColor.G, DiffuseColor.B);
+  glUniform3f(FUniformLightAmbient,  0.2, 0.2, 0.2);
+  glUniform3f(FUniformLightDiffuse,  0.5, 0.5, 0.5);
   glUniform3f(FUniformLightSpecular, 1.0, 1.0, 1.0);
 
   { Set material properties }
-  glUniform3f(FUniformMaterialAmbient,   1.0, 0.5, 0.31);
-  glUniform3f(FUniformMaterialDiffuse,   1.0, 0.5, 0.31);
-  glUniform3f(FUniformMaterialSpecular,  0.5, 0.5, 0.5); // Specular doesn't have full effect on this object's material
   glUniform1f(FUniformMaterialShininess, 32.0);
 
   { Create camera transformation }
@@ -287,6 +334,14 @@ begin
   { Pass matrices to shader }
   glUniformMatrix4fv(FUniformContainerView, 1, GL_FALSE, @View);
   glUniformMatrix4fv(FUniformContainerProjection, 1, GL_FALSE, @Projection);
+
+  { Bind diffuse map }
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, FDiffuseMap);
+
+  { Bind specular map }
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, FSpecularMap);
 
   { Create Model matrix and calculate Normal Matrix }
   Model.Init;

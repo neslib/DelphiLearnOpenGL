@@ -83,6 +83,7 @@ type
 
       Raises an exception if the AName is not found in the shader. }
     function GetUniformLocation(const AName: RawByteString): Integer;
+    function GetUniformLocationUnicode(const AName: String): Integer;
 
     { Low level OpenGL handle of the shader. }
     property Handle: GLuint read _GetHandle;
@@ -102,6 +103,7 @@ type
     function _GetHandle: GLuint;
     procedure Use;
     function GetUniformLocation(const AName: RawByteString): Integer;
+    function GetUniformLocationUnicode(const AName: String): Integer;
   {$ENDREGION 'Internal Declarations'}
   public
     { Creates a shader.
@@ -705,6 +707,11 @@ begin
   Result := glGetUniformLocation(FProgram, MarshaledAString(AName));
   if (Result < 0) then
     raise Exception.CreateFmt('Uniform "%s" not found in shader', [AName]);
+end;
+
+function TShader.GetUniformLocationUnicode(const AName: String): Integer;
+begin
+  Result := GetUniformLocation(RawByteString(AName));
 end;
 
 procedure TShader.Use;

@@ -11,6 +11,8 @@ uses
   System.UITypes,
   System.SysUtils,
   System.Zip,
+  System.Generics.Collections,
+  System.Generics.Defaults,
   Neslib.FastMath;
 
 type
@@ -169,11 +171,15 @@ type
           2 values.
         ANormalized: (optional) if set to True, values will be normalized from a
           0-255 range to 0.0 - 0.1 in the shader. Defaults to False.
+        AOptional: (optional) if set to True, the attribute is ignored if it
+          doesn't exist in the shader. Otherwise, an exception is raised if the
+          attribute is not found.
 
       Returns:
         This instance, for use in a fluent API. }
     function Add(const AName: RawByteString; const ACount: Integer;
-      const ANormalized: Boolean = False): PVertexLayout;
+      const ANormalized: Boolean = False;
+      const AOptional: Boolean = False): PVertexLayout;
   end;
 
 type
@@ -406,7 +412,7 @@ type
   end;
 
 type
-  { Implements TCamera }
+  { Implements ICamera }
   TCamera = class(TInterfacedObject, ICamera)
   public const
     DEFAULT_YAW         = -90;
@@ -437,6 +443,7 @@ type
     FKeyS: Boolean;
     FKeyD: Boolean;
   protected
+    { ICamera }
     function _GetPosition: TVector3;
     procedure _SetPosition(const AValue: TVector3);
     function _GetFront: TVector3;
@@ -495,6 +502,222 @@ type
       const APitch: Single = DEFAULT_PITCH); overload;
   end;
 
+type
+  { Class for parsing .OBJ and .MTL files }
+  TParser = class
+  {$REGION 'Internal Declarations'}
+  private
+    FData: String;
+    FCurrent: PChar;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Creates a parser.
+
+      Parameters:
+        APath: path into the assets.zip file containing the file to parse
+          (eg. 'models/MyModel.obj'). }
+    constructor Create(const APath: String);
+
+    { Parses a line in the file.
+
+      Parameters:
+        ACommand: is set to command that starts the line (first word in the
+          string).
+        AArg1: is set to the first argument of the command
+        AArg2: is set to the second argument of the command (if any)
+        AArg3: is set to the third argument of the command (if any)
+
+      Returns:
+        True if a line was parsed, or False if the end of the file has been
+        reached.
+
+      This method will ignore empty lines and comments. }
+    function ReadLine(out ACommand, AArg1, AArg2, AArg3: String): Boolean;
+  end;
+
+type
+  { Vertex type used to render 3D models (see TMesh, IModel) }
+  TVertex = record
+  public
+    Position: TVector3;
+    Normal: TVector3;
+    TexCoords: TVector2;
+  end;
+
+type
+  { The kind of a TTexture map }
+  TTextureKind = (Diffuse, Specular, Normal, Height);
+
+type
+  { Represents a texture (map) as used by a TMesh }
+  TTexture = record
+  {$REGION 'Internal Declarations'}
+  private
+    FId: GLuint;
+    FKind: TTextureKind;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Loads the texture from a file in assets.zip.
+
+      Parameters:
+        APath: path into the assets.zip file containing the image file
+          (eg. 'models/MyModelTexture.jpg').
+        AKind: the kind of texture this is. }
+    procedure Load(const APath: String;
+      const AKind: TTextureKind);
+
+    { OpenGL id of texture }
+    property Id: GLuint read FId;
+
+    { Kind of texture }
+    property Kind: TTextureKind read FKind;
+  end;
+
+type
+  { Represents a 3D mesh in a IModel/TModel }
+  TMesh = class
+  {$REGION 'Internal Declarations'}
+  private
+    FShader: IShader;
+    FVertices: TArray<TVertex>;
+    FIndices: TArray<UInt16>;
+    FTextures: TArray<TTexture>;
+    FVertexArray: IVertexArray;
+  private
+    procedure SetupMesh;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Creates a mesh.
+
+      Parameters:
+        AVertices: the vertices that make up the mesh
+        AIndices: indices into to vertices that define the mesh triangles
+        ATextures: texture (maps) used to render the mesh
+        AShader: the shader used to render the mesh. }
+    constructor Create(const AVertices: TArray<TVertex>;
+      const AIndices: TArray<UInt16>; const ATextures: TArray<TTexture>;
+      const AShader: IShader);
+
+    { Draws/renders the mesh }
+    procedure Draw;
+  end;
+
+type
+  { Represents a 3D model, loaded from a Wavefront .OBJ resource.
+    Implemented in the TModel class. }
+  IModel = interface
+  ['{29B5AB25-129C-4CA6-B368-146577F298F6}']
+    { Draws/renders the model }
+    procedure Draw;
+  end;
+
+type
+  { Implements IModel }
+  TModel = class(TInterfacedObject, IModel)
+  {$REGION 'Internal Declarations'}
+  private type
+    { Temporary record used to store material properties }
+    TMaterial = record
+    public
+      DiffuseMaps: TArray<String>;
+      SpecularMaps: TArray<String>;
+      NormalMaps: TArray<String>;
+      HeightMaps: TArray<String>;
+    public
+      procedure Clear;
+    end;
+  private type
+    { Vertex type to define faces in a OBJ file }
+    TFaceVertex = packed record
+      { Index into the array of positions }
+      PositionIndex: UInt16;
+
+      { Index into the array of normals }
+      NormalIndex: UInt16;
+
+      { Index into the array of texture coordinates }
+      TexCoordIndex: UInt16;
+    end;
+  private type
+    { Light-weight and fast list }
+    TFastList<T: record> = record
+    private
+      FItems: TArray<T>;
+      FCapacity: Integer;
+      FCount: Integer;
+    public
+      { Initializes to empty list.
+
+        Parameters:
+          ACapacity: (optional) initial capacity of the list }
+      procedure Init(const ACapacity: Integer = 256);
+
+      { Adds an item }
+      procedure Add(const AItem: T);
+
+      { Clears the list }
+      procedure Clear;
+
+      { Convert list to array }
+      function ToArray: TArray<T>;
+
+      { Number of items in the list }
+      property Count: Integer read FCount;
+    end;
+  private
+    FMeshes: TObjectList<TMesh>;
+
+    { Stores all the textures loaded so far (by lowercase path).
+      Used as optimization to make sure textures aren't loaded more than once. }
+    FLoadedTextures: TDictionary<String, TTexture>;
+
+    FDirectory: String;
+    FShader: IShader;
+  private
+    procedure LoadModel(const APath: String);
+    procedure LoadMtlLib(const APath: String;
+      const AMaterials: TDictionary<String, TMaterial>);
+    procedure ParseOBJ(const AParser: TParser);
+    procedure ParseMTL(const AParser: TParser;
+      const AMaterials: TDictionary<String, TMaterial>);
+    function LoadMaterialTexture(const AFilename: String;
+      const AKind: TTextureKind): TTexture;
+  private
+    class function ToVector2(const AX, AY: String): TVector2; inline; static;
+    class function ToVector3(const AX, AY, AZ: String): TVector3; inline; static;
+    class function ToFaceVertex(const AString: String): TFaceVertex; static;
+  protected
+    { IModel }
+    procedure Draw;
+  {$ENDREGION 'Internal Declarations'}
+  public
+    { Creates a model.
+
+      Parameters:
+        APath: path into the assets.zip file containing the Wavefront .OBJ
+          file (eg. 'models/MyModel.obj').
+        AShader: the shader used to render the model.
+
+      If the model file references any external resources such as textures or
+      material libraries, then they must be in the same directory as the .OBJ
+      file. }
+    constructor Create(const APath: String; const AShader: IShader);
+    destructor Destroy; override;
+  end;
+
+var
+  { Format settings that handle US-style presentation of numbers. }
+  USFormatSettings: TFormatSettings;
+
+{ Helper function to determine if a value is a power of two.
+
+  Parameters:
+    AValue: the value to check.
+
+  Returns:
+    True if AValue is a power of 2, or False otherwise. }
+function IsPowerOfTwo(const AValue: Cardinal): Boolean; inline;
+
 { In DEBUG mode, checks for any OpenGL error since the last OpenGL call and
   raises an exception of the last OpenGL call failed. Does nothing in RELEASE
   (or non-DEBUG) mode. }
@@ -519,10 +742,20 @@ var
 implementation
 
 uses
-  {$IFDEF ANDROID}
+  System.IOUtils,
+  {$IF Defined(MACOS)}
+  Macapi.CoreFoundation, // For inlining to work
+  {$ELSEIF Defined(ANDROID)}
   Posix.Dlfcn,
   {$ENDIF}
+  Neslib.Stb.Image,
   Sample.Platform;
+
+function IsPowerOfTwo(const AValue: Cardinal): Boolean; inline;
+begin
+  { https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2 }
+  Result := ((AValue and (AValue - 1)) = 0);
+end;
 
 {$IFDEF DEBUG}
 procedure glErrorCheck;
@@ -727,7 +960,7 @@ end;
 { TVertexLayout }
 
 function TVertexLayout.Add(const AName: RawByteString; const ACount: Integer;
-  const ANormalized: Boolean): PVertexLayout;
+  const ANormalized, AOptional: Boolean): PVertexLayout;
 var
   Location, Stride: Integer;
 begin
@@ -739,17 +972,20 @@ begin
     raise Exception.Create('Vertex layout too big');
 
   Location := glGetAttribLocation(FProgram, MarshaledAString(AName));
-  if (Location < 0) then
+  if (Location < 0) and (not AOptional) then
     raise Exception.CreateFmt('Attribute "%s" not found in shader', [AName]);
 
-  Assert(Location <= 255);
-  FAttributes[FAttributeCount].Location := Location;
-  FAttributes[FAttributeCount].Size := ACount;
-  FAttributes[FAttributeCount].Normalized := Ord(ANormalized);
-  FAttributes[FAttributeCount].Offset := FStride;
+  if (Location >= 0) then
+  begin
+    Assert(Location <= 255);
+    FAttributes[FAttributeCount].Location := Location;
+    FAttributes[FAttributeCount].Size := ACount;
+    FAttributes[FAttributeCount].Normalized := Ord(ANormalized);
+    FAttributes[FAttributeCount].Offset := FStride;
+    Inc(FAttributeCount);
+  end;
 
   FStride := Stride;
-  Inc(FAttributeCount);
 
   Result := @Self;
 end;
@@ -1290,5 +1526,605 @@ procedure TCamera._SetZoom(const AValue: Single);
 begin
   FZoom := AValue;
 end;
+
+{ TParser }
+
+constructor TParser.Create(const APath: String);
+var
+  Data: TBytes;
+  Encoding: TEncoding;
+  PreambleLength: Integer;
+begin
+  inherited Create;
+  Data := TAssets.Load(APath);
+
+  { Try to determine encoding of file }
+  Encoding := nil;
+  PreambleLength := TEncoding.GetBufferEncoding(Data, Encoding);
+
+  { Convert to UnicodeString }
+  FData := Encoding.GetString(Data, PreambleLength, Length(Data) - PreambleLength);
+  FCurrent := PChar(FData);
+end;
+
+function TParser.ReadLine(out ACommand, AArg1, AArg2, AArg3: String): Boolean;
+var
+  P: PChar;
+
+  function ParseString: String;
+  var
+    Start: PChar;
+  begin
+    if (P^ = #0) or (P^ = #10) then
+      { End of line/file }
+      Exit('');
+
+    Start := P;
+
+    { Advance to next whitespace }
+    while (P^ > ' ') do
+      Inc(P);
+
+    { Extract string }
+    SetString(Result, Start, P - Start);
+
+    { Skip whitespace }
+    while (P^ = #9) or (P^ = #13) or (P^ = ' ') do
+      Inc(P);
+  end;
+
+begin
+  P := FCurrent;
+
+  { Repeat until line has been read or end of file has been reached }
+  while True do
+  begin
+    { Skip whitespace }
+    while (P^ <> #0) and (P^ <= ' ') do
+      Inc(P);
+
+    if (P^ = #0) then
+    begin
+      { End of file reached }
+      FCurrent := P;
+      Exit(False);
+    end;
+
+    if (P^ = '#') then
+    begin
+      { Ignore comment }
+      Inc(P);
+      while (P^ <> #0) and (P^ <> #10) do
+        Inc(P);
+
+      { Next line }
+      Continue;
+    end;
+
+    ACommand := ParseString;
+    AArg1 := ParseString;
+    AArg2 := ParseString;
+    AArg3 := ParseString;
+    FCurrent := P;
+    Exit(True);
+  end;
+end;
+
+{ TTexture }
+
+procedure TTexture.Load(const APath: String; const AKind: TTextureKind);
+var
+  Width, Height, Components: Integer;
+  Data: TBytes;
+  Image: Pointer;
+  SupportsMipmaps: Boolean;
+begin
+  FKind := AKind;
+
+  { Generate OpenGL texture }
+  glGenTextures(1, @FId);
+  glBindTexture(GL_TEXTURE_2D, FId);
+
+  { Load texture }
+  Data := TAssets.Load(APath);
+  Assert(Assigned(Data));
+  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, 3);
+  Assert(Assigned(Image));
+
+  { Set texture data }
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+
+  { Generate mipmaps if possible. With OpenGL ES, mipmaps are only supported
+    if both dimensions are a power of two. }
+  SupportsMipmaps := IsPowerOfTwo(Width) and IsPowerOfTwo(Height);
+  if (SupportsMipmaps) then
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+  { Set texture parameters }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  if (SupportsMipmaps) then
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+  else
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+  { Free original image }
+  stbi_image_free(Image);
+
+  { Unbind }
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glErrorCheck;
+end;
+
+{ TMesh }
+
+constructor TMesh.Create(const AVertices: TArray<TVertex>;
+  const AIndices: TArray<UInt16>; const ATextures: TArray<TTexture>;
+  const AShader: IShader);
+begin
+  inherited Create;
+  FShader := AShader;
+  FVertices := AVertices;
+  FIndices := AIndices;
+  FTextures := ATextures;
+
+  { Now that we have all the required data, set the vertex buffers and its
+    attribute pointers. }
+  SetupMesh;
+end;
+
+procedure TMesh.Draw;
+var
+  Prog, DiffuseNr, SpecularNr, NormalNr, HeightNr, Nr: GLuint;
+  Location: GLint;
+  I: Integer;
+  Name: RawByteString;
+begin
+  { Bind appropriate textures }
+  Prog := FShader.Handle;
+  DiffuseNr := 1;
+  SpecularNr := 1;
+  NormalNr := 1;
+  HeightNr := 1;
+  for I := 0 to Length(FTextures) - 1 do
+  begin
+    { Active proper texture unit before binding }
+    glActiveTexture(GL_TEXTURE0 + I);
+
+    { Retrieve texture number (the N in diffuse_textureN) }
+    case FTextures[I].Kind of
+      TTextureKind.Diffuse:
+        begin
+          Name := 'texture_diffuse';
+          Nr := DiffuseNr;
+          Inc(DiffuseNr);
+        end;
+
+      TTextureKind.Specular:
+        begin
+          Name := 'texture_specular';
+          Nr := SpecularNr;
+          Inc(SpecularNr);
+        end;
+
+      TTextureKind.Normal:
+        begin
+          Name := 'texture_normal';
+          Nr := NormalNr;
+          Inc(NormalNr);
+        end;
+
+      TTextureKind.Height:
+        begin
+          Name := 'texture_height';
+          Nr := HeightNr;
+          Inc(HeightNr);
+        end;
+    else
+      Assert(False);
+      Nr := 0;
+    end;
+
+    if (Nr > 0) then
+    begin
+      { Now set the sampler to the correct texture unit }
+      Name := Name + UTF8Char(Ord('0') + Nr);
+      Location := glGetUniformLocation(Prog, MarshaledAString(Name));
+      if (Location >= 0) then
+      begin
+        glUniform1i(Location, I);
+
+        { And finally bind the texture }
+        glBindTexture(GL_TEXTURE_2D, FTextures[I].Id);
+      end;
+    end;
+  end;
+
+  { Draw the mesh }
+  FVertexArray.Render;
+
+  { Always good practice to set everything back to defaults once configured. }
+  for I := 0 to Length(FTextures) - 1 do
+  begin
+    glActiveTexture(GL_TEXTURE0 + I);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  end;
+  glErrorCheck;
+end;
+
+procedure TMesh.SetupMesh;
+var
+  VertexLayout: TVertexLayout;
+begin
+  { Create vertex layout to match TVertex type }
+  VertexLayout.Start(FShader)
+    .Add('position', 3)
+    .Add('normal', 3, False, True)
+    .Add('texCoords', 2, False, True);
+
+  { Create vertex array (VAO, VBO and EBO) }
+  FVertexArray := TVertexArray.Create(VertexLayout,
+    FVertices[0], Length(FVertices) * SizeOf(TVertex), FIndices);
+end;
+
+{ TModel }
+
+constructor TModel.Create(const APath: String; const AShader: IShader);
+begin
+  inherited Create;
+  FShader := AShader;
+  FMeshes := TObjectList<TMesh>.Create;
+  FLoadedTextures := TDictionary<String, TTexture>.Create;
+  LoadModel(APath);
+end;
+
+destructor TModel.Destroy;
+begin
+  FLoadedTextures.Free;
+  FMeshes.Free;
+  inherited;
+end;
+
+procedure TModel.Draw;
+var
+  I: Integer;
+begin
+  for I := 0 to FMeshes.Count - 1 do
+    FMeshes[I].Draw;
+end;
+
+function TModel.LoadMaterialTexture(const AFilename: String;
+  const AKind: TTextureKind): TTexture;
+var
+  LowerFilename: String;
+begin
+  { Check if texture was loaded before and if so, return existing texture }
+  LowerFilename := AFilename.ToLower;
+  if (FLoadedTextures.TryGetValue(LowerFilename, Result)) then
+    Exit;
+
+  Result.Load(FDirectory + AFilename, AKind);
+  FLoadedTextures.Add(LowerFilename, Result);
+end;
+
+procedure TModel.LoadModel(const APath: String);
+var
+  Parser: TParser;
+begin
+  FDirectory := TPath.GetDirectoryName(APath) + '/';
+  Parser := TParser.Create(APath);
+  try
+    ParseOBJ(Parser);
+  finally
+    Parser.Free;
+  end;
+end;
+
+procedure TModel.LoadMtlLib(const APath: String;
+  const AMaterials: TDictionary<String, TMaterial>);
+var
+  Parser: TParser;
+begin
+  Parser := TParser.Create(FDirectory + APath);
+  try
+    ParseMTL(Parser, AMaterials);
+  finally
+    Parser.Free;
+  end;
+end;
+
+procedure TModel.ParseMTL(const AParser: TParser;
+  const AMaterials: TDictionary<String, TMaterial>);
+var
+  Command, Arg1, Arg2, Arg3, MaterialName: String;
+  Material: TMaterial;
+begin
+  MaterialName := '';
+  while AParser.ReadLine(Command, Arg1, Arg2, Arg3) do
+  begin
+    if (Command = 'newmtl') then
+    begin
+      { Start a new material.
+        Store previous material if any. }
+      if (MaterialName <> '') then
+        AMaterials.Add(MaterialName, Material);
+
+      if (Arg1 = '') then
+        raise Exception.Create('newmtl command requires a material name');
+
+      MaterialName := Arg1;
+      Material.Clear;
+    end
+    else if (Command.StartsWith('map_')) then
+    begin
+      { We only care about the "map_*" commands }
+      if (Arg1 = '') then
+        raise Exception.Create(Command + ' command requires a map file');
+
+      if (Command = 'map_Kd') then
+        Material.DiffuseMaps := Material.DiffuseMaps + [Arg1]
+      else if (Command = 'map_Ks') then
+        Material.SpecularMaps := Material.SpecularMaps + [Arg1]
+      else if (Command = 'map_Bump') then
+        Material.NormalMaps := Material.NormalMaps + [Arg1]
+      else if (Command = 'map_Ka') then
+        Material.HeightMaps := Material.HeightMaps + [Arg1];
+    end;
+  end;
+
+  { Add last material }
+  if (MaterialName <> '') then
+    AMaterials.Add(MaterialName, Material);
+end;
+
+procedure TModel.ParseOBJ(const AParser: TParser);
+var
+  Command, Arg1, Arg2, Arg3, Filename: String;
+  Materials: TDictionary<String, TMaterial>;
+  Positions: TFastList<TVector3>;
+  Normals: TFastList<TVector3>;
+  TexCoords: TFastList<TVector2>;
+  FaceVerts: TFastList<TFaceVertex>;
+  Textures: TFastList<TTexture>;
+  Material: TMaterial;
+  TexCoord: TVector2;
+
+  procedure StoreMesh;
+  var
+    Mesh: TMesh;
+    V, Vn: TArray<TVector3>;
+    Vt: TArray<TVector2>;
+    F: TArray<TFaceVertex>;
+    Vertices: TArray<TVertex>;
+    Indices: TArray<UInt16>;
+    I: Integer;
+  begin
+    if (Positions.Count = 0) or (FaceVerts.Count = 0) then
+      Exit;
+
+    { Convert positions, normals and texture coordinates to TVertex records.
+      Note that the number of normals and texture coordinates does not have to
+      match the number of positions. What positions, normals and texcoord belong
+      to what vertex is determined by the FaceVerts array. }
+    V := Positions.ToArray;
+    Vn := Normals.ToArray;
+    Vt := TexCoords.ToArray;
+    F := FaceVerts.ToArray;
+
+    { F contains 3 vertices for each triangle. Each vertex defines the indices
+      into the V, Vn and Vt arrays.
+
+      Use these to create an array of TVertex vertices and an array of indices.
+      Since we use 16-bit indices in these tutorials, the F array may contain
+      no more than 65,536 elements. }
+    if (Length(F) > 65536) then
+      raise Exception.Create('Too many vertices in mesh');
+
+    { Note: we could optimize the creation of the vertex array here by checking
+      for duplicate face vertices in the F array and sharing those vertices.
+      However, we keep it simple here and convert each TFaceVertex to a TVertex
+      and create a simple sequential array of indices. }
+    SetLength(Vertices, Length(F));
+    SetLength(Indices, Length(F));
+    for I := 0 to Length(F) - 1 do
+    begin
+      Assert(F[I].PositionIndex < Length(V));
+      Assert(F[I].TexCoordIndex < Length(Vt));
+      Assert(F[I].NormalIndex < Length(Vn));
+
+      Indices[I] := I;
+      Vertices[I].Position := V[F[I].PositionIndex];
+      Vertices[I].Normal := Vn[F[I].NormalIndex];
+      Vertices[I].TexCoords := Vt[F[I].TexCoordIndex];
+    end;
+
+    Mesh := TMesh.Create(Vertices, Indices, Textures.ToArray, FShader);
+    FMeshes.Add(Mesh);
+  end;
+
+begin
+  Positions.Init;
+  Normals.Init;
+  TexCoords.Init;
+  FaceVerts.Init;
+  Textures.Init(4);
+
+  Materials := TDictionary<String, TMaterial>.Create;
+  try
+    while AParser.ReadLine(Command, Arg1, Arg2, Arg3) do
+    begin
+      { We ignore unknown commands }
+      case Command.Chars[0] of
+        'f': if (Command = 'f') then
+             begin
+               { Define a face. Each argument is in the format:
+                   v/vt/vn
+                 Where:
+                 * v: 1-based index into Positions list
+                 * vt: 1-based index into TexCoords list
+                 * vn: 1-based index into Normals list
+                 Note that we subtract 1 from each value so indices start at 0. }
+               FaceVerts.Add(ToFaceVertex(Arg1));
+               FaceVerts.Add(ToFaceVertex(Arg2));
+               FaceVerts.Add(ToFaceVertex(Arg3));
+             end;
+
+        'm': if (Command = 'mtllib') then
+               LoadMtlLib(Arg1, Materials);
+
+        'o': if (Command = 'o') then
+             begin
+               { Start a new object/mesh. Store previous mesh if any. }
+               StoreMesh;
+               FaceVerts.Clear;
+               Textures.Clear;
+
+               { Don't clear Positions, Normals and TexCoords. The 'f' command
+                 indexes these as global lists that should not be cleared until
+                 the entire file has been read. }
+             end;
+
+        'u': if (Command = 'usemtl') then
+             begin
+               { Assign material from material library to mesh. }
+               if (not Materials.TryGetValue(Arg1, Material)) then
+                 raise Exception.CreateFmt('Material "%s" not found in material library', [Arg1]);
+
+               for Filename in Material.DiffuseMaps do
+                 Textures.Add(LoadMaterialTexture(Filename, TTextureKind.Diffuse));
+
+               for Filename in Material.SpecularMaps do
+                 Textures.Add(LoadMaterialTexture(Filename, TTextureKind.Specular));
+
+               for Filename in Material.NormalMaps do
+                 Textures.Add(LoadMaterialTexture(Filename, TTextureKind.Normal));
+
+               for Filename in Material.HeightMaps do
+                 Textures.Add(LoadMaterialTexture(Filename, TTextureKind.Height));
+             end;
+
+        'v': if (Command = 'v') then
+               { Add position }
+               Positions.Add(ToVector3(Arg1, Arg2, Arg3))
+             else if (Command = 'vt') then
+             begin
+               { Add texture coordinate }
+               TexCoord := ToVector2(Arg1, Arg2);
+               { Flip Y coordinate to make texture align with OpenGL }
+               TexCoord.Y := 1 - TexCoord.Y;
+               TexCoords.Add(TexCoord);
+             end
+             else if (Command = 'vn') then
+               { Add normal }
+               Normals.Add(ToVector3(Arg1, Arg2, Arg3));
+      end;
+    end;
+  finally
+    Materials.Free;
+  end;
+
+  { Store last mesh }
+  StoreMesh;
+end;
+
+class function TModel.ToFaceVertex(const AString: String): TFaceVertex;
+var
+  P, Start: PChar;
+  S: String;
+begin
+  if (AString = '') then
+    raise Exception.Create('Invalid face vertex');
+
+  { Parse v/vt/vn in its parts }
+  P := Pointer(AString);
+
+  { Parse v }
+  Start := P;
+  while (P^ <> '/') and (P^ <> #0) do
+    Inc(P);
+  if (P^ = #0) then
+    raise Exception.Create('Invalid face vertex');
+  SetString(S, Start, P - Start);
+  Result.PositionIndex := StrToInt(S) - 1;
+  Inc(P);
+
+  { Parse vt }
+  Start := P;
+  while (P^ <> '/') and (P^ <> #0) do
+    Inc(P);
+  if (P^ = #0) then
+    raise Exception.Create('Invalid face vertex');
+  SetString(S, Start, P - Start);
+  Result.TexCoordIndex := StrToInt(S) - 1;
+  Inc(P);
+
+  { Parse vn }
+  Start := P;
+  while (P^ <> #0) do
+    Inc(P);
+  SetString(S, Start, P - Start);
+  Result.NormalIndex := StrToInt(S) - 1;
+end;
+
+class function TModel.ToVector2(const AX, AY: String): TVector2;
+begin
+  Result.X := StrToFloat(AX, USFormatSettings);
+  Result.Y := StrToFloat(AY, USFormatSettings);
+end;
+
+class function TModel.ToVector3(const AX, AY, AZ: String): TVector3;
+begin
+  Result.X := StrToFloat(AX, USFormatSettings);
+  Result.Y := StrToFloat(AY, USFormatSettings);
+  Result.Z := StrToFloat(AZ, USFormatSettings);
+end;
+
+{ TModel.TMaterial }
+
+procedure TModel.TMaterial.Clear;
+begin
+  DiffuseMaps := nil;
+  SpecularMaps := nil;
+  NormalMaps := nil;
+  HeightMaps := nil;
+end;
+
+{ TModel.TFastList<T> }
+
+procedure TModel.TFastList<T>.Add(const AItem: T);
+begin
+  if (FCount >= FCapacity) then
+  begin
+    FCapacity := FCapacity * 2;
+    SetLength(FItems, FCapacity);
+  end;
+  FItems[FCount] := AItem;
+  Inc(FCount);
+end;
+
+procedure TModel.TFastList<T>.Clear;
+begin
+  FCount := 0;
+end;
+
+procedure TModel.TFastList<T>.Init(const ACapacity: Integer = 256);
+begin
+  FCapacity := ACapacity;
+  FCount := 0;
+  SetLength(FItems, FCapacity);
+end;
+
+function TModel.TFastList<T>.ToArray: TArray<T>;
+begin
+  Result := FItems;
+  SetLength(Result, FCount);
+end;
+
+initialization
+  USFormatSettings := TFormatSettings.Create('en-US');
+  USFormatSettings.ThousandSeparator := ',';
+  USFormatSettings.DecimalSeparator := '.';
 
 end.

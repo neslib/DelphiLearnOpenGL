@@ -29,7 +29,7 @@ type
   Note: texture loading functions like these are usually managed by a 'Resource
   Manager' that manages all resources (like textures, models, audio).
   For learning purposes we'll just define it as a utility function. }
-function LoadTexture(const APath: String): GLuint;
+function LoadTexture(const APath: String; const AAlpha: Boolean = False): GLuint;
 
 implementation
 
@@ -37,13 +37,30 @@ uses
   System.SysUtils,
   Neslib.Stb.Image;
 
-function LoadTexture(const APath: String): GLuint;
+function LoadTexture(const APath: String; const AAlpha: Boolean): GLuint;
 var
-  Width, Height, Components: Integer;
+  Width, Height, Components, Format, Wrap: Integer;
   Image: Pointer;
   Data: TBytes;
   SupportsMipmaps: Boolean;
 begin
+  { Set options accoridng to AAlpha value }
+  if AAlpha then
+  begin
+    Components := 4;
+    Format := GL_RGBA;
+
+    { Use GL_CLAMP_TO_EDGE to prevent semi-transparent borders.
+      Due to interpolation it takes value from next repeat }
+    Wrap := GL_CLAMP_TO_EDGE;
+  end
+  else
+  begin
+    Components := 3;
+    Format := GL_RGB;
+    Wrap := GL_REPEAT;
+  end;
+
   { Generate OpenGL texture }
   glGenTextures(1, @Result);
   glBindTexture(GL_TEXTURE_2D, Result);
@@ -51,21 +68,24 @@ begin
   { Load texture }
   Data := TAssets.Load(APath);
   Assert(Assigned(Data));
-  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, 3);
+  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, Components);
   Assert(Assigned(Image));
 
   { Set texture data }
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+  glTexImage2D(GL_TEXTURE_2D, 0, Format, Width, Height, 0, Format, GL_UNSIGNED_BYTE, Image);
 
   { Generate mipmaps if possible. With OpenGL ES, mipmaps are only supported
     if both dimensions are a power of two. }
   SupportsMipmaps := IsPowerOfTwo(Width) and IsPowerOfTwo(Height);
   if (SupportsMipmaps) then
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_2D)
+  else
+    { Only clamp-to-edge is supported for NPOT textures }
+    Wrap := GL_CLAMP_TO_EDGE;
 
   { Set texture parameters }
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Wrap);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Wrap);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   if (SupportsMipmaps) then

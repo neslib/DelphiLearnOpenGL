@@ -166,6 +166,8 @@ begin
   PFD.cColorBits := 24;
   PFD.cAlphaBits := 0; // 8;
   PFD.cDepthBits := 16;
+  if (TPlatformWindows.App.NeedStencilBuffer) then
+    PFD.cStencilBits := 8;
   PFD.iLayerType := PFD_MAIN_PLANE;
   PixelFormat := ChoosePixelFormat(FWindowDC, @PFD);
   SetPixelFormat(FWindowDC, PixelFormat, @PFD);

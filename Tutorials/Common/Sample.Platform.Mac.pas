@@ -394,15 +394,19 @@ begin
 end;
 
 class procedure TPlatformMac.SetupOpenGLContext;
-const
-  ATTRIBUTES: array[0..3] of NSOpenGLPixelFormatAttribute = (
-    NSOpenGLPFADoubleBuffer,
-    NSOpenGLPFADepthSize, 16,
-    0);
 var
   Module: HMODULE;
+  Attributes: TArray<NSOpenGLPixelFormatAttribute>;
 begin
-  FPixelFormat := TNSOpenGLPixelFormat.Wrap(TNSOpenGLPixelFormat.Alloc.initWithAttributes(@ATTRIBUTES[0]));
+  Attributes := TArray<NSOpenGLPixelFormatAttribute>.Create(
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFADepthSize, 16);
+
+  if (TPlatformMac.App.NeedStencilBuffer) then
+    Attributes := Attributes + [NSOpenGLPFAStencilSize, 8];
+  Attributes := Attributes + [0];
+
+  FPixelFormat := TNSOpenGLPixelFormat.Wrap(TNSOpenGLPixelFormat.Alloc.initWithAttributes(@Attributes[0]));
   FContext := TNSOpenGLContext.Wrap(TNSOpenGLContext.Alloc.initWithFormat(FPixelFormat, nil));
   FView.setOpenGLContext(FContext);
   FContext.makeCurrentContext;

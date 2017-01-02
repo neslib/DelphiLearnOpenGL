@@ -77,14 +77,6 @@ const
 
 class procedure TPlatformAndroid.CreateContext;
 const
-  CONFIG_ATTRIBS: array [0..12] of EGLint = (
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_DEPTH_SIZE, 16,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_NONE);
   SURFACE_ATTRIBS: array [0..0] of EGLint = (
     EGL_NONE);
   CONTEXT_ATTRIBS: array [0..2] of EGLint = (
@@ -92,6 +84,7 @@ const
     EGL_NONE);
 var
   NumConfigs, Format: EGLint;
+  ConfigAttribs: TArray<EGLint>;
 begin
   { TODO: Handle context loss? }
 
@@ -102,7 +95,21 @@ begin
   if (eglInitialize(FDisplay, nil, nil) = EGL_FALSE) then
     raise Exception.Create('Unable to initialize EGL');
 
-  if (eglChooseConfig(FDisplay, @CONFIG_ATTRIBS[0], @FConfig, 1, @NumConfigs) = EGL_FALSE) then
+  ConfigAttribs := TArray<EGLint>.Create(
+    EGL_RED_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_BLUE_SIZE, 8,
+    EGL_ALPHA_SIZE, 8,
+    EGL_DEPTH_SIZE, 16);
+
+  if (TPlatformAndroid.App.NeedStencilBuffer) then
+    ConfigAttribs := ConfigAttribs + [EGL_STENCIL_SIZE, 8];
+
+  ConfigAttribs := ConfigAttribs + [
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+    EGL_NONE];
+
+  if (eglChooseConfig(FDisplay, @ConfigAttribs[0], @FConfig, 1, @NumConfigs) = EGL_FALSE) then
     raise Exception.Create('Unable to create EGL configuration');
 
   eglGetConfigAttrib(FDisplay, FConfig, EGL_NATIVE_VISUAL_ID, @Format);

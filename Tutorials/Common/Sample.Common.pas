@@ -25,7 +25,61 @@ type
     procedure Apply(const AView, AProjection: TMatrix4); overload;
   end;
 
+{ This function loads a texture from file in assets.zip.
+  Note: texture loading functions like these are usually managed by a 'Resource
+  Manager' that manages all resources (like textures, models, audio).
+  For learning purposes we'll just define it as a utility function. }
+function LoadTexture(const APath: String): GLuint;
+
 implementation
+
+uses
+  System.SysUtils,
+  Neslib.Stb.Image;
+
+function LoadTexture(const APath: String): GLuint;
+var
+  Width, Height, Components: Integer;
+  Image: Pointer;
+  Data: TBytes;
+  SupportsMipmaps: Boolean;
+begin
+  { Generate OpenGL texture }
+  glGenTextures(1, @Result);
+  glBindTexture(GL_TEXTURE_2D, Result);
+
+  { Load texture }
+  Data := TAssets.Load(APath);
+  Assert(Assigned(Data));
+  Image := stbi_load_from_memory(Data, Length(Data), Width, Height, Components, 3);
+  Assert(Assigned(Image));
+
+  { Set texture data }
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Image);
+
+  { Generate mipmaps if possible. With OpenGL ES, mipmaps are only supported
+    if both dimensions are a power of two. }
+  SupportsMipmaps := IsPowerOfTwo(Width) and IsPowerOfTwo(Height);
+  if (SupportsMipmaps) then
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+  { Set texture parameters }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  if (SupportsMipmaps) then
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+  else
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+  { Free original image }
+  stbi_image_free(Image);
+
+  { Unbind }
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glErrorCheck;
+end;
 
 { TUniformMVP }
 

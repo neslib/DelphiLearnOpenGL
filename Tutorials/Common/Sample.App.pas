@@ -131,6 +131,10 @@ type
         AHeight: new height of the framebuffer }
     procedure Resize(const AWidth, AHeight: Integer); virtual;
 
+    { If the application needs a stencil buffer, then you must override this
+      method and return True. Returns False by default. }
+    function NeedStencilBuffer: Boolean; virtual;
+
     { Call this method to manually terminate the app. }
     procedure Terminate;
 
@@ -218,6 +222,11 @@ procedure TApplication.MouseWheel(const AShift: TShiftState;
   const AWheelDelta: Integer);
 begin
   { No default implementation }
+end;
+
+function TApplication.NeedStencilBuffer: Boolean;
+begin
+  Result := False;
 end;
 
 procedure TApplication.Resize(const AWidth, AHeight: Integer);

@@ -317,7 +317,13 @@ begin
 
   glGenRenderbuffers(1, @FDepthRenderbuffer);
   glBindRenderbuffer(GL_RENDERBUFFER, FDepthRenderbuffer);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FWidth, FHeight);
+  if (TPlatformIOS.App.NeedStencilBuffer) then
+  begin
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, FWidth, FHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, FDepthRenderbuffer);
+  end
+  else
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FWidth, FHeight);
   glErrorCheck;
 
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, FColorRenderbuffer);
@@ -391,7 +397,10 @@ begin
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, @FHeight);
 
     glBindRenderbuffer(GL_RENDERBUFFER, FDepthRenderbuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FWidth, FHeight);
+    if (TPlatformIOS.App.NeedStencilBuffer) then
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, FWidth, FHeight)
+    else
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FWidth, FHeight);
 
     TPlatformIOS.App.Resize(FWidth, FHeight);
     FSizeChanged := False;

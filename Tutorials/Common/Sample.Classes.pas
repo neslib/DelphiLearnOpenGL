@@ -228,9 +228,6 @@ type
     glGenVertexArrays: procedure(n: GLsizei; arrays: PGLuint); {$IFDEF MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
     glBindVertexArray: procedure(array_: GLuint); {$IFDEF MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
     glDeleteVertexArrays: procedure(n: GLsizei; {$IFDEF MSWINDOWS}const{$ENDIF} arrays: PGLuint); {$IFDEF MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
-    {$IFDEF ANDROID}
-    FLibHandle: THandle;
-    {$ENDIF}
   private
     FVertexBuffer: GLuint;
     FIndexBuffer: GLuint;
@@ -252,7 +249,6 @@ type
     procedure EndRender;
   public
     class constructor Create;
-    class destructor Destroy;
   {$ENDREGION 'Internal Declarations'}
   public
     { Creates a vertex array.
@@ -745,8 +741,6 @@ uses
   System.IOUtils,
   {$IF Defined(MACOS)}
   Macapi.CoreFoundation, // For inlining to work
-  {$ELSEIF Defined(ANDROID)}
-  Posix.Dlfcn,
   {$ENDIF}
   Neslib.Stb.Image,
   Sample.Platform;
@@ -1046,14 +1040,6 @@ begin
   Create(ALayout, AVertices, ASizeOfVertices, AIndices[0], Length(AIndices));
 end;
 
-class destructor TVertexArray.Destroy;
-begin
-  {$IFDEF ANDROID}
-  if (FLibHandle <> 0) then
-    dlClose(FLibHandle);
-  {$ENDIF}
-end;
-
 constructor TVertexArray.Create(const ALayout: TVertexLayout; const AVertices;
   const ASizeOfVertices: Integer; const AIndices;
   const AIndexCount: Integer);
@@ -1174,18 +1160,15 @@ begin
   glBindVertexArray := glBindVertexArrayAPPLE;
   glDeleteVertexArrays := glDeleteVertexArraysAPPLE;
   {$ELSEIF Defined(ANDROID)}
-  FSupportsVAO := glIsExtensionSupported('GL_OES_vertex_array_object');
-  if (FSupportsVAO) then
-  begin
-    FLibHandle := dlopen(AndroidGles2Lib, RTLD_LAZY);
-    FSupportsVAO := (FLibHandle <> 0);
-    if (FSupportsVAO) then
-    begin
-      glGenVertexArrays := dlsym(FLibHandle, 'glGenVertexArraysOES');
-      glBindVertexArray := dlsym(FLibHandle, 'glBindVertexArrayOES');
-      glDeleteVertexArrays := dlsym(FLibHandle, 'glDeleteVertexArraysOES');
-    end;
-  end;
+  { Technically, a lot of Android devices support VAO's if the extension
+    GL_OES_vertex_array_object is available. However, on some Android devices,
+    this extension is available, but it does not work. Calling a VAO API then
+    results in a log message: "E/libEGL: called unimplemented OpenGL ES API."
+    (See http://blog.linderdaum.com/2013/10/19/vao/).
+    So we cannot reliably use VAO's on Android.
+    (NOTE: As of OpenGL ES 3.0, VAO are part of the core specification, but we
+    target OpenGL ES 2.0) }
+  FSupportsVAO := False;
   {$ENDIF}
 
   FSupportsVAO := FSupportsVAO and Assigned(glGenVertexArrays)

@@ -6,10 +6,16 @@ interface
 
 uses
   Androidapi.Egl,
-  Androidapi.AppGlue,
   Androidapi.Input,
   Androidapi.Rect,
   Androidapi.NativeActivity,
+  {$IF (RTLVersion < 32) }
+  // Delphi 10.1 Berlin and earlier
+  Androidapi.AppGlue,
+  {$ELSE}
+  // Delphi 10.2 Tokyi and later
+  Sample.Androidapi.AppGlue,
+  {$ENDIF}
   Sample.Platform;
 
 type
@@ -85,8 +91,10 @@ const
 var
   NumConfigs, Format: EGLint;
   ConfigAttribs: TArray<EGLint>;
+  Window: PANativeWindow;
 begin
   { TODO: Handle context loss? }
+  Window := FAndroidApp.Window;
 
   FDisplay := eglGetDisplay(EGL_DEFAULT_DISPLAY);
   if (FDisplay = EGL_NO_DISPLAY) then
@@ -113,9 +121,9 @@ begin
     raise Exception.Create('Unable to create EGL configuration');
 
   eglGetConfigAttrib(FDisplay, FConfig, EGL_NATIVE_VISUAL_ID, @Format);
-  ANativeWindow_setBuffersGeometry(FAndroidApp.window, 0, 0, Format);
+  ANativeWindow_setBuffersGeometry(Window, 0, 0, Format);
 
-  FSurface := eglCreateWindowSurface(FDisplay, FConfig, FAndroidApp.window, @SURFACE_ATTRIBS[0]);
+  FSurface := eglCreateWindowSurface(FDisplay, FConfig, Window, @SURFACE_ATTRIBS[0]);
   if (FSurface = EGL_NO_SURFACE) then
     raise Exception.Create('Unable to get create EGL window surface');
 
